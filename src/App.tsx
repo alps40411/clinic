@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Calendar, MessageSquare, Users, Stethoscope, Menu, X } from 'lucide-react';
+import { Calendar, MessageSquare, Users, Stethoscope, Clock, Menu, X } from 'lucide-react';
 import AppointmentBooking from './pages/AppointmentBooking';
 import ConsultationPage from './pages/ConsultationPage';
 import PatientProfileManager from './components/PatientProfileManager';
 import ClinicInfoDisplay from './components/ClinicInfoDisplay';
+import ClinicProgress from './components/ClinicProgress';
 
-type PageType = 'appointment' | 'consultation' | 'profile' | 'clinic';
+type PageType = 'appointment' | 'consultation' | 'profile' | 'clinic' | 'progress';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('clinic');
@@ -23,6 +24,12 @@ function App() {
       name: '門診預約',
       icon: Calendar,
       description: '線上預約看診'
+    },
+    {
+      id: 'progress' as PageType,
+      name: '看診進度',
+      icon: Clock,
+      description: '即時看診進度查詢'
     },
     {
       id: 'consultation' as PageType,
@@ -46,6 +53,8 @@ function App() {
         return <ConsultationPage />;
       case 'profile':
         return <PatientProfileManager />;
+      case 'progress':
+        return <ClinicProgress />;
       case 'clinic':
       default:
         return <ClinicInfoDisplay />;

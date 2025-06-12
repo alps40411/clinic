@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, ArrowLeft } from 'lucide-react';
+import { CheckCircle, ArrowLeft, Search, Calendar } from 'lucide-react';
 import DoctorSelection from '../components/DoctorSelection';
 import DateSelection from '../components/DateSelection';
 import TimeSlotSelection from '../components/TimeSlotSelection';
@@ -114,17 +114,52 @@ const AppointmentBooking: React.FC = () => {
       <div className="max-w-md mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">門診預約</h1>
+          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <Calendar className="w-6 h-6 text-cyan-500" />
+            門診預約
+          </h1>
           <button
             onClick={() => setCurrentView('lookup')}
-            className="px-4 py-2 border border-cyan-500 text-cyan-500 rounded-lg hover:bg-cyan-50 transition-colors duration-200"
+            className="flex items-center gap-2 px-4 py-2 border border-cyan-500 text-cyan-500 rounded-lg hover:bg-cyan-50 transition-colors duration-200"
           >
+            <Search className="w-4 h-4" />
             查詢預約
           </button>
         </div>
 
         <div className="text-center mb-6">
           <p className="text-gray-600">請依序選擇醫師、日期和時段完成預約</p>
+        </div>
+
+        {/* Progress Indicator */}
+        <div className="flex items-center justify-center mb-6">
+          <div className="flex items-center space-x-2">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+              selectedDoctor ? 'bg-cyan-500 text-white' : 'bg-gray-200 text-gray-500'
+            }`}>
+              1
+            </div>
+            <div className={`w-8 h-1 ${selectedDoctor ? 'bg-cyan-500' : 'bg-gray-200'}`}></div>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+              selectedDate ? 'bg-cyan-500 text-white' : 'bg-gray-200 text-gray-500'
+            }`}>
+              2
+            </div>
+            <div className={`w-8 h-1 ${selectedDate ? 'bg-cyan-500' : 'bg-gray-200'}`}></div>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+              selectedTimeSlot ? 'bg-cyan-500 text-white' : 'bg-gray-200 text-gray-500'
+            }`}>
+              3
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-center mb-6">
+          <div className="flex space-x-4 text-xs text-gray-500">
+            <span className={selectedDoctor ? 'text-cyan-600 font-medium' : ''}>選擇醫師</span>
+            <span className={selectedDate ? 'text-cyan-600 font-medium' : ''}>選擇日期</span>
+            <span className={selectedTimeSlot ? 'text-cyan-600 font-medium' : ''}>選擇時段</span>
+          </div>
         </div>
 
         {/* Booking Steps */}

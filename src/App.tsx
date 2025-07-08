@@ -1,73 +1,74 @@
 import React, { useState } from 'react';
-import { Calendar, MessageSquare, Users, Stethoscope, Clock, Menu, X } from 'lucide-react';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Calendar, MessageSquare, Users, Stethoscope, Clock, Menu, X, Search } from 'lucide-react';
 import AppointmentBooking from './pages/AppointmentBooking';
+import AppointmentLookup from './pages/AppointmentLookup';
 import ConsultationPage from './pages/ConsultationPage';
 import PatientProfileManager from './components/PatientProfileManager';
 import ClinicInfoDisplay from './components/ClinicInfoDisplay';
 import ClinicProgress from './components/ClinicProgress';
 
-type PageType = 'appointment' | 'consultation' | 'profile' | 'clinic' | 'progress';
+const pages = [
+  {
+    id: 'clinic',
+    path: '/',
+    name: '診所資訊',
+    icon: Stethoscope,
+    description: '醫師團隊與診所介紹',
+    component: ClinicInfoDisplay
+  },
+  {
+    id: 'appointment',
+    path: '/appointment',
+    name: '門診預約',
+    icon: Calendar,
+    description: '線上預約看診',
+    component: AppointmentBooking
+  },
+  {
+    id: 'lookup',
+    path: '/lookup',
+    name: '查詢預約',
+    icon: Search,
+    description: '查看預約記錄',
+    component: AppointmentLookup
+  },
+  {
+    id: 'progress',
+    path: '/progress',
+    name: '看診進度',
+    icon: Clock,
+    description: '即時看診進度查詢',
+    component: ClinicProgress
+  },
+  {
+    id: 'consultation',
+    path: '/consultation',
+    name: '客戶諮詢',
+    icon: MessageSquare,
+    description: '諮詢服務申請',
+    component: ConsultationPage
+  },
+  {
+    id: 'profile',
+    path: '/profile',
+    name: '看診資訊設定',
+    icon: Users,
+    description: '管理使用者資料',
+    component: PatientProfileManager
+  }
+];
 
-function App() {
-  const [currentPage, setCurrentPage] = useState<PageType>('clinic');
+function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
 
-  const pages = [
-    {
-      id: 'clinic' as PageType,
-      name: '診所資訊',
-      icon: Stethoscope,
-      description: '醫師團隊與診所介紹'
-    },
-    {
-      id: 'appointment' as PageType,
-      name: '門診預約',
-      icon: Calendar,
-      description: '線上預約看診'
-    },
-    {
-      id: 'progress' as PageType,
-      name: '看診進度',
-      icon: Clock,
-      description: '即時看診進度查詢'
-    },
-    {
-      id: 'consultation' as PageType,
-      name: '客戶諮詢',
-      icon: MessageSquare,
-      description: '諮詢服務申請'
-    },
-    {
-      id: 'profile' as PageType,
-      name: '看診資訊設定',
-      icon: Users,
-      description: '管理使用者資料'
-    }
-  ];
-
-  const renderCurrentPage = () => {
-    switch (currentPage) {
-      case 'appointment':
-        return <AppointmentBooking />;
-      case 'consultation':
-        return <ConsultationPage />;
-      case 'profile':
-        return <PatientProfileManager />;
-      case 'progress':
-        return <ClinicProgress />;
-      case 'clinic':
-      default:
-        return <ClinicInfoDisplay />;
-    }
-  };
-
-  const handlePageChange = (pageId: PageType) => {
-    setCurrentPage(pageId);
+  const handlePageChange = () => {
     setIsMobileMenuOpen(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-blue-50">
+    <>
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
         <div className="max-w-md mx-auto px-4 py-4">
@@ -114,12 +115,13 @@ function App() {
               <nav className="space-y-3">
                 {pages.map((page) => {
                   const Icon = page.icon;
-                  const isActive = currentPage === page.id;
+                  const isActive = location.pathname === page.path;
                   
                   return (
-                    <button
+                    <Link
                       key={page.id}
-                      onClick={() => handlePageChange(page.id)}
+                      to={page.path}
+                      onClick={handlePageChange}
                       className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all duration-200 text-left ${
                         isActive
                           ? 'bg-cyan-500 text-white shadow-sm'
@@ -133,7 +135,7 @@ function App() {
                           {page.description}
                         </div>
                       </div>
-                    </button>
+                    </Link>
                   );
                 })}
               </nav>
@@ -141,39 +143,30 @@ function App() {
           </div>
         </div>
       )}
+    </>
+  );
+}
 
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-30">
-        <div className="max-w-md mx-auto">
-          <nav className="flex">
-            {pages.map((page) => {
-              const Icon = page.icon;
-              const isActive = currentPage === page.id;
-              
-              return (
-                <button
-                  key={page.id}
-                  onClick={() => handlePageChange(page.id)}
-                  className={`flex-1 flex flex-col items-center gap-1 py-3 px-2 transition-all duration-200 ${
-                    isActive
-                      ? 'text-cyan-500 bg-cyan-50'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="text-xs font-medium">{page.name}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
+function App() {
+  return (
+    <Router>
+      <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-blue-50">
+        <Navigation />
+        
+        {/* Main Content */}
+        <main className="pb-20">
+          <Routes>
+            {pages.map((page) => (
+              <Route
+                key={page.id}
+                path={page.path}
+                element={<page.component />}
+              />
+            ))}
+          </Routes>
+        </main>
       </div>
-
-      {/* Main Content */}
-      <main className="pb-20">
-        {renderCurrentPage()}
-      </main>
-    </div>
+    </Router>
   );
 }
 

@@ -304,12 +304,6 @@ const PatientProfileList: React.FC<PatientProfileListProps> = ({
             </div>
           )}
         </div>
-
-        {/* Footer Note */}
-        <div className="mt-6 text-center text-sm text-gray-500">
-          <p>資料將安全儲存在本地裝置</p>
-          <p className="mt-1">可隨時新增、編輯或刪除使用者資料</p>
-        </div>
       </div>
     </div>
   );

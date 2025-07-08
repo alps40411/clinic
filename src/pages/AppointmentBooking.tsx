@@ -118,13 +118,13 @@ const AppointmentBooking: React.FC = () => {
             <Calendar className="w-6 h-6 text-cyan-500" />
             門診預約
           </h1>
-          <button
+          {/* <button
             onClick={() => setCurrentView('lookup')}
             className="flex items-center gap-2 px-4 py-2 border border-cyan-500 text-cyan-500 rounded-lg hover:bg-cyan-50 transition-colors duration-200"
           >
             <Search className="w-4 h-4" />
             查詢預約
-          </button>
+          </button> */}
         </div>
 
         <div className="text-center mb-6">

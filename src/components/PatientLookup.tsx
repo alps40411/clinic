@@ -6,9 +6,13 @@ import { formatDateDisplay, isEditDeleteAllowed, validateIdNumber } from '../uti
 
 interface PatientLookupProps {
   onEditAppointment?: (appointment: Appointment) => void;
+  showAppointmentHistory?: boolean;
 }
 
-const PatientLookup: React.FC<PatientLookupProps> = ({ onEditAppointment }) => {
+const PatientLookup: React.FC<PatientLookupProps> = ({ 
+  onEditAppointment,
+  showAppointmentHistory = true 
+}) => {
   const [idNumber, setIdNumber] = useState('');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
@@ -99,20 +103,20 @@ const PatientLookup: React.FC<PatientLookupProps> = ({ onEditAppointment }) => {
                 setError('');
               }}
               placeholder="請輸入身分證字號 (例: A123456789)"
-              className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
+              className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
               maxLength={10}
             />
             <button
               onClick={handleSearch}
               disabled={isLoading || !idNumber}
-              className="px-6 py-3 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2 font-medium"
+              className="px-6 py-0 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2 font-medium"
             >
               {isLoading ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <Search className="w-4 h-4" />
               )}
-              查詢
+
             </button>
           </div>
           {error && (

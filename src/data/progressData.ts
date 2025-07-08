@@ -67,3 +67,28 @@ export const mockPatientQueues: { [doctorId: string]: PatientQueue[] } = {
     { queueNumber: 14, patientName: '鄭**', appointmentTime: '15:20', status: 'waiting', estimatedTime: '15:35' }
   ]
 };
+
+export interface ProgressItem {
+  doctor: string;
+  department: string;
+  currentNumber: string;
+  waitingCount: number;
+  estimatedWait: number;
+}
+
+export const progressData: ProgressItem[] = [
+  {
+    doctor: '王大明 醫師',
+    department: '家庭醫學科',
+    currentNumber: 'A12',
+    waitingCount: 5,
+    estimatedWait: 15
+  },
+  {
+    doctor: '李小華 醫師',
+    department: '小兒科',
+    currentNumber: 'B08',
+    waitingCount: 3,
+    estimatedWait: 10
+  }
+];

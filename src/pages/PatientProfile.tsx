@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import PatientProfileList from './PatientProfileList';
-import PatientProfileForm from './PatientProfileForm';
+import PatientProfileList from '../components/PatientProfileList';
+import PatientProfileForm from '../components/PatientProfileForm';
 import { PatientProfile, PatientFormData } from '../types/patient';
 
 type ViewMode = 'list' | 'form';

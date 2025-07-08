@@ -24,7 +24,7 @@ export interface PatientFormData {
   address: string;
   emergencyContact: string;
   emergencyPhone: string;
-  bloodType: string;
-  allergies: string;
-  medicalHistory: string;
+  bloodType?: string;
+  allergies?: string;
+  medicalHistory?: string;
 }

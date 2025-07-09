@@ -7,6 +7,7 @@ import ConsultationPage from './pages/ConsultationPage';
 import PatientProfileManager from './components/PatientProfileManager';
 import ClinicInfoDisplay from './components/ClinicInfoDisplay';
 import ClinicProgress from './components/ClinicProgress';
+import ApiTestPage from './pages/ApiTestPage';
 
 const pages = [
   {
@@ -163,6 +164,8 @@ function App() {
                 element={<page.component />}
               />
             ))}
+            {/* 開發用 API 測試頁面 */}
+            <Route path="/api-test" element={<ApiTestPage />} />
           </Routes>
         </main>
       </div>

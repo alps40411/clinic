@@ -12,14 +12,18 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
-  User
+  User,
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import { DoctorInfo } from '../types/doctor';
-import { clinicInfo, doctorsInfo } from '../data/doctorData';
+import { clinicInfo } from '../data/doctorData';
+import { useDoctors } from '../hooks/useDoctors';
 
 const ClinicInfoDisplay: React.FC = () => {
   const [selectedDoctor, setSelectedDoctor] = useState<DoctorInfo | null>(null);
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({});
+  const { doctorsInfo, loading, error } = useDoctors();
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections(prev => ({
@@ -93,144 +97,154 @@ const ClinicInfoDisplay: React.FC = () => {
               </div>
 
               {/* Education */}
-              <div className="mb-6">
-                <button
-                  onClick={() => toggleSection('education')}
-                  className="w-full flex items-center justify-between text-lg font-semibold text-gray-800 mb-3"
-                >
-                  <div className="flex items-center gap-2">
-                    <GraduationCap className="w-5 h-5 text-cyan-500" />
-                    學歷
-                  </div>
-                  {expandedSections.education ? (
-                    <ChevronUp className="w-5 h-5 text-gray-400" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
+              {(selectedDoctor.education.length > 0) && (
+                <div className="mb-6">
+                  <button
+                    onClick={() => toggleSection('education')}
+                    className="w-full flex items-center justify-between text-lg font-semibold text-gray-800 mb-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="w-5 h-5 text-cyan-500" />
+                      學歷
+                    </div>
+                    {expandedSections.education ? (
+                      <ChevronUp className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                    )}
+                  </button>
+                  {expandedSections.education && (
+                    <div className="space-y-2">
+                      {selectedDoctor.education.map((edu, index) => (
+                        <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                          <div className="w-2 h-2 bg-cyan-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <p className="text-gray-700">{edu}</p>
+                        </div>
+                      ))}
+                    </div>
                   )}
-                </button>
-                {expandedSections.education && (
-                  <div className="space-y-2">
-                    {selectedDoctor.education.map((edu, index) => (
-                      <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                        <div className="w-2 h-2 bg-cyan-500 rounded-full mt-2 flex-shrink-0"></div>
-                        <p className="text-gray-700">{edu}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Experience */}
-              <div className="mb-6">
-                <button
-                  onClick={() => toggleSection('experience')}
-                  className="w-full flex items-center justify-between text-lg font-semibold text-gray-800 mb-3"
-                >
-                  <div className="flex items-center gap-2">
-                    <Briefcase className="w-5 h-5 text-cyan-500" />
-                    經歷
-                  </div>
-                  {expandedSections.experience ? (
-                    <ChevronUp className="w-5 h-5 text-gray-400" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
+              {(selectedDoctor.experience.length > 0) && (
+                <div className="mb-6">
+                  <button
+                    onClick={() => toggleSection('experience')}
+                    className="w-full flex items-center justify-between text-lg font-semibold text-gray-800 mb-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="w-5 h-5 text-cyan-500" />
+                      經歷
+                    </div>
+                    {expandedSections.experience ? (
+                      <ChevronUp className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                    )}
+                  </button>
+                  {expandedSections.experience && (
+                    <div className="space-y-2">
+                      {selectedDoctor.experience.map((exp, index) => (
+                        <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                          <div className="w-2 h-2 bg-cyan-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <p className="text-gray-700">{exp}</p>
+                        </div>
+                      ))}
+                    </div>
                   )}
-                </button>
-                {expandedSections.experience && (
-                  <div className="space-y-2">
-                    {selectedDoctor.experience.map((exp, index) => (
-                      <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                        <div className="w-2 h-2 bg-cyan-500 rounded-full mt-2 flex-shrink-0"></div>
-                        <p className="text-gray-700">{exp}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Certifications */}
-              <div className="mb-6">
-                <button
-                  onClick={() => toggleSection('certifications')}
-                  className="w-full flex items-center justify-between text-lg font-semibold text-gray-800 mb-3"
-                >
-                  <div className="flex items-center gap-2">
-                    <Award className="w-5 h-5 text-cyan-500" />
-                    專業證照
-                  </div>
-                  {expandedSections.certifications ? (
-                    <ChevronUp className="w-5 h-5 text-gray-400" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
+              {(selectedDoctor.certifications.length > 0) && (
+                <div className="mb-6">
+                  <button
+                    onClick={() => toggleSection('certifications')}
+                    className="w-full flex items-center justify-between text-lg font-semibold text-gray-800 mb-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Award className="w-5 h-5 text-cyan-500" />
+                      專業證照
+                    </div>
+                    {expandedSections.certifications ? (
+                      <ChevronUp className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                    )}
+                  </button>
+                  {expandedSections.certifications && (
+                    <div className="space-y-2">
+                      {selectedDoctor.certifications.map((cert, index) => (
+                        <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                          <Award className="w-4 h-4 text-cyan-500 mt-1 flex-shrink-0" />
+                          <p className="text-gray-700">{cert}</p>
+                        </div>
+                      ))}
+                    </div>
                   )}
-                </button>
-                {expandedSections.certifications && (
-                  <div className="space-y-2">
-                    {selectedDoctor.certifications.map((cert, index) => (
-                      <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                        <Award className="w-4 h-4 text-cyan-500 mt-1 flex-shrink-0" />
-                        <p className="text-gray-700">{cert}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Expertise */}
-              <div className="mb-6">
-                <button
-                  onClick={() => toggleSection('expertise')}
-                  className="w-full flex items-center justify-between text-lg font-semibold text-gray-800 mb-3"
-                >
-                  <div className="flex items-center gap-2">
-                    <Star className="w-5 h-5 text-cyan-500" />
-                    專精項目
-                  </div>
-                  {expandedSections.expertise ? (
-                    <ChevronUp className="w-5 h-5 text-gray-400" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
+              {(selectedDoctor.expertise.length > 0) && (
+                <div className="mb-6">
+                  <button
+                    onClick={() => toggleSection('expertise')}
+                    className="w-full flex items-center justify-between text-lg font-semibold text-gray-800 mb-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Star className="w-5 h-5 text-cyan-500" />
+                      專精項目
+                    </div>
+                    {expandedSections.expertise ? (
+                      <ChevronUp className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                    )}
+                  </button>
+                  {expandedSections.expertise && (
+                    <div className="space-y-2">
+                      {selectedDoctor.expertise.map((item, index) => (
+                        <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                          <Star className="w-4 h-4 text-cyan-500 mt-1 flex-shrink-0" />
+                          <p className="text-gray-700">{item}</p>
+                        </div>
+                      ))}
+                    </div>
                   )}
-                </button>
-                {expandedSections.expertise && (
-                  <div className="space-y-2">
-                    {selectedDoctor.expertise.map((item, index) => (
-                      <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                        <Star className="w-4 h-4 text-cyan-500 mt-1 flex-shrink-0" />
-                        <p className="text-gray-700">{item}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Schedule */}
-              <div>
-                <button
-                  onClick={() => toggleSection('schedule')}
-                  className="w-full flex items-center justify-between text-lg font-semibold text-gray-800 mb-3"
-                >
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-cyan-500" />
-                    門診時間
-                  </div>
-                  {expandedSections.schedule ? (
-                    <ChevronUp className="w-5 h-5 text-gray-400" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
+              {(Object.keys(selectedDoctor.schedule).length > 0) && (
+                <div>
+                  <button
+                    onClick={() => toggleSection('schedule')}
+                    className="w-full flex items-center justify-between text-lg font-semibold text-gray-800 mb-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-5 h-5 text-cyan-500" />
+                      門診時間
+                    </div>
+                    {expandedSections.schedule ? (
+                      <ChevronUp className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                    )}
+                  </button>
+                  {expandedSections.schedule && (
+                    <div className="space-y-2">
+                      {formatSchedule(selectedDoctor.schedule).map((item, index) => (
+                        <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                          <span className="font-medium text-gray-700">{item.day}</span>
+                          <span className="text-gray-600 text-sm">{item.times}</span>
+                        </div>
+                      ))}
+                    </div>
                   )}
-                </button>
-                {expandedSections.schedule && (
-                  <div className="space-y-2">
-                    {formatSchedule(selectedDoctor.schedule).map((item, index) => (
-                      <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span className="font-medium text-gray-700">{item.day}</span>
-                        <span className="text-gray-600 text-sm">{item.times}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -314,6 +328,22 @@ const ClinicInfoDisplay: React.FC = () => {
         {/* Doctors */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">醫師團隊</h2>
+          
+          {loading && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-cyan-500 mr-2" />
+              <span className="text-gray-600">載入醫師資訊中...</span>
+            </div>
+          )}
+          
+          {error && (
+            <div className="flex items-center justify-center py-4 mb-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <AlertCircle className="w-5 h-5 text-yellow-600 mr-2" />
+              <span className="text-yellow-800 text-sm">
+                無法載入最新醫師資訊，顯示本地資料
+              </span>
+            </div>
+          )}
           
           <div className="space-y-4">
             {doctorsInfo.map((doctor) => (

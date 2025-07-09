@@ -3,6 +3,7 @@ import { DoctorInfo } from '../types/doctor';
 import { apiService, ApiDoctor } from '../services/apiService';
 import { convertApiToDoctorInfo } from '../utils/doctorUtils';
 import { doctorsInfo } from '../data/doctorData';
+import { LINE_USER_ID } from '../config/api';
 
 interface UseDoctorReturn {
   doctor: DoctorInfo | null;
@@ -11,7 +12,7 @@ interface UseDoctorReturn {
   refetch: () => Promise<void>;
 }
 
-export const useDoctor = (doctorId: string): UseDoctorReturn => {
+export const useDoctor = (doctorId: string, lineUserId: string = LINE_USER_ID): UseDoctorReturn => {
   const [doctor, setDoctor] = useState<DoctorInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,10 +24,9 @@ export const useDoctor = (doctorId: string): UseDoctorReturn => {
     setError(null);
     
     try {
-      const response = await apiService.getDoctorById(doctorId);
+      const response = await apiService.getDoctorById(doctorId, lineUserId);
       
       if (response.success && response.data) {
-        console.log(`獲取醫生 ${doctorId} 的 API 資料:`, response.data);
         const apiDoctor = convertApiToDoctorInfo(response.data);
         setDoctor(apiDoctor);
       } else {
@@ -49,7 +49,7 @@ export const useDoctor = (doctorId: string): UseDoctorReturn => {
 
   useEffect(() => {
     fetchDoctor();
-  }, [doctorId]);
+  }, [doctorId, lineUserId]);
 
   return {
     doctor,

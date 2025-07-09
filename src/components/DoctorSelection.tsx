@@ -25,8 +25,8 @@ const DoctorSelection: React.FC<DoctorSelectionProps> = ({ selectedDoctor, onSel
       )}
       
       {error && (
-        <div className="flex items-center justify-center py-4 mb-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <AlertCircle className="w-5 h-5 text-yellow-600 mr-2" />
+        <div className="flex items-center py-4 mb-4 bg-yellow-50 border border-yellow-200 rounded-lg px-4">
+          <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0" />
           <span className="text-yellow-800 text-sm">
             無法載入最新醫師資訊，顯示本地資料
           </span>

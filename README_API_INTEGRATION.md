@@ -2,17 +2,19 @@
 
 ## 概述
 
-本專案已成功串接診所 API，使用 LINE User ID 作為 Bearer Token 進行身份驗證。所有醫生相關的資料現在都可以從 API 動態獲取，同時保留了本地資料作為 fallback 機制。
+本專案已成功串接診所 API，使用 LINE User ID (x-line-id header) 進行身份驗證。所有 API 都支援醫生和看診進度資料的動態獲取，同時保留了本地資料作為 fallback 機制。
 
 ## 配置資訊
 
 ### API 基本設定
 - **基礎 URL**: `http://tw1.openvpns.org:30001`
-- **Bearer Token**: `U66bfb7dabdef424cd78c29bd352fc4cb`
+- **認證方式**: `x-line-id` header
+- **LINE User ID**: `U66bfb7dabdef424cd78c29bd352fc4cb`
 
 ### 可用端點
 - `GET /doctors` - 獲取所有醫師資料
 - `GET /doctors/{id}` - 獲取特定醫師資料
+- `GET /schedules` - 獲取看診進度資料
 
 ## 架構設計
 
@@ -21,49 +23,67 @@
 ```
 src/
 ├── config/
-│   └── api.ts                 # API 配置檔案
+│   └── api.ts                 # API 配置檔案 (包含 LINE User ID)
 ├── services/
-│   └── apiService.ts          # API 服務層
+│   └── apiService.ts          # API 服務層 (支援所有端點)
 ├── hooks/
 │   ├── useDoctors.ts          # 醫師列表 Hook
-│   └── useDoctor.ts           # 單一醫師 Hook
+│   ├── useDoctor.ts           # 單一醫師 Hook
+│   └── useSchedules.ts        # 看診進度 Hook
 ├── utils/
-│   └── doctorUtils.ts         # 資料轉換工具
-├── components/
-│   └── ApiTestComponent.tsx   # API 測試組件
-└── pages/
-    └── ApiTestPage.tsx        # API 測試頁面
+│   ├── doctorUtils.ts         # 醫師資料轉換工具
+│   └── scheduleUtils.ts       # 看診進度資料轉換工具
+├── types/
+│   ├── doctor.ts              # 醫師型別定義
+│   └── schedule.ts            # 看診進度型別定義
+└── components/
+    ├── ClinicInfoDisplay.tsx  # 診所資訊 (使用醫師 API)
+    ├── DoctorSelection.tsx    # 醫師選擇 (使用醫師 API)
+    └── ClinicProgress.tsx     # 看診進度 (使用進度 API)
 ```
 
 ### 核心元件說明
 
 #### 1. API 配置 (`src/config/api.ts`)
-集中管理 API 相關配置，包括 URL、端點和認證標頭。
+- 集中管理 API 相關配置
+- 支援環境感知 (開發/生產)
+- LINE User ID 配置
+- 動態 headers 生成
 
 #### 2. API 服務層 (`src/services/apiService.ts`)
 提供統一的 API 呼叫介面：
-- `getDoctors()` - 獲取醫師列表
-- `getDoctorById(id)` - 獲取特定醫師資料
+- `getDoctors(lineUserId?)` - 獲取醫師列表
+- `getDoctorById(id, lineUserId?)` - 獲取特定醫師資料
+- `getSchedules(params?, lineUserId?)` - 獲取看診進度
 - 統一的錯誤處理機制
+- 支援查詢參數 (分頁、日期範圍等)
 
-#### 3. 資料轉換工具 (`src/utils/doctorUtils.ts`)
-將 API 返回的資料轉換為現有的型別格式：
+#### 3. 資料轉換工具
+**醫師資料轉換** (`src/utils/doctorUtils.ts`)：
 - `convertApiToDoctorInfo()` - 轉換為詳細醫師資料
 - `convertApiToDoctor()` - 轉換為簡化醫師資料
 
+**看診進度轉換** (`src/utils/scheduleUtils.ts`)：
+- `convertApiToSchedule()` - 轉換為看診排程
+- `convertToScheduleProgress()` - 轉換為進度顯示格式
+- `formatTimeSlot()` - 時段格式化
+
 #### 4. 自定義 Hooks
-- `useDoctors()` - 管理醫師列表狀態，包含 loading、error 處理
-- `useDoctor(id)` - 管理單一醫師資料獲取
+- `useDoctors(lineUserId?)` - 管理醫師列表狀態
+- `useDoctor(id, lineUserId?)` - 管理單一醫師資料
+- `useSchedules(params?, lineUserId?)` - 管理看診進度資料
 
 ## 使用方式
 
-### 在組件中使用醫師資料
+### 醫師資料獲取
 
 ```tsx
 import { useDoctors } from '../hooks/useDoctors';
 
 function MyComponent() {
   const { doctorsInfo, doctors, loading, error, refetch } = useDoctors();
+  // 可選擇傳入自定義 LINE User ID
+  // const { ... } = useDoctors('custom-line-user-id');
 
   if (loading) return <div>載入中...</div>;
   if (error) return <div>錯誤: {error}</div>;
@@ -78,79 +98,158 @@ function MyComponent() {
 }
 ```
 
-### 獲取單一醫師資料
+### 看診進度獲取
 
 ```tsx
-import { useDoctor } from '../hooks/useDoctor';
+import { useSchedules } from '../hooks/useSchedules';
 
-function DoctorDetail({ doctorId }: { doctorId: string }) {
-  const { doctor, loading, error } = useDoctor(doctorId);
+function ProgressComponent() {
+  const today = new Date().toISOString().split('T')[0];
+  
+  const { schedules, loading, error, refetch } = useSchedules({
+    page: 1,
+    limit: 50,
+    startDate: `${today}T00:00:00Z`,
+    endDate: `${today}T23:59:59Z`,
+  });
 
-  if (loading) return <div>載入中...</div>;
-  if (error) return <div>錯誤: {error}</div>;
-  if (!doctor) return <div>找不到醫師</div>;
-
-  return <div>{doctor.name} - {doctor.specialty.join(', ')}</div>;
+  return (
+    <div>
+      {schedules.map(schedule => (
+        <div key={schedule.scheduleId}>
+          {schedule.doctorName} - {schedule.progress}%
+        </div>
+      ))}
+    </div>
+  );
 }
+```
+
+## API 資料格式
+
+### 醫師資料 (GET /doctors)
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "王大明",
+      "specialty": "內科",
+      "information": {
+        "title": "主任醫師",
+        "experience": "20年",
+        "education": "台大醫學系",
+        "image": "https://example.com/image.jpg"
+      },
+      "createdAt": "2025-07-09T07:17:34.449Z",
+      "updatedAt": "2025-07-09T07:17:34.449Z"
+    }
+  ],
+  "meta": {
+    "total": 100,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 10
+  }
+}
+```
+
+### 看診進度 (GET /schedules)
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "doctorId": 1,
+      "clinicId": 1,
+      "date": "2024-03-20T10:00:00.000Z",
+      "timeSlot": "MORNING",
+      "currentAppointments": 0,
+      "doctor": {
+        "id": 1,
+        "name": "王大明",
+        "specialty": "內科",
+        "information": { ... }
+      },
+      "clinic": {
+        "id": 1,
+        "name": "診間一",
+        "capacity": 50
+      }
+    }
+  ],
+  "meta": { ... }
+}
+```
+
+## 認證機制
+
+### LINE User ID 使用
+每個 API 請求都會自動加入以下 header：
+```
+x-line-id: U66bfb7dabdef424cd78c29bd352fc4cb
+```
+
+### 自定義 User ID
+所有 Hook 和 API 方法都支援傳入自定義的 LINE User ID：
+```tsx
+// 使用預設 ID
+const { doctors } = useDoctors();
+
+// 使用自定義 ID
+const { doctors } = useDoctors('custom-user-id');
 ```
 
 ## 錯誤處理機制
 
 ### Fallback 策略
-當 API 呼叫失敗時，系統會自動：
-1. 顯示錯誤訊息給使用者
-2. 使用本地資料作為 fallback
-3. 記錄錯誤到 console 供開發者除錯
+- **醫師資料**: API 失敗時使用本地醫師資料
+- **看診進度**: API 失敗時顯示錯誤訊息，無本地資料
+- **用戶友善提示**: 顯示載入狀態和錯誤訊息
+- **開發者除錯**: Console 中提供詳細錯誤資訊
 
-### 錯誤類型
-- **網路錯誤**: 無法連接到 API 伺服器
-- **認證錯誤**: Bearer Token 無效或過期
-- **資料錯誤**: API 回應格式不正確
+### CORS 解決方案
+- 開發環境: 使用 Vite 代理 (`/api` → `http://tw1.openvpns.org:30001`)
+- 生產環境: 直接訪問 API
 
-## 測試與除錯
+## 功能特色
 
-### API 測試頁面
-訪問 `/api-test` 路由可以進入 API 測試頁面，提供：
-- 即時 API 連接測試
-- 回應資料檢視
-- Hook 狀態監控
-- 錯誤資訊顯示
+### 看診進度功能
+- 即時進度顯示
+- 時段篩選 (上午/下午/晚上)
+- 等待時間估算
+- 手動重新整理
+- 載入狀態和錯誤處理
 
-### 開發者工具
-在瀏覽器的 Console 中可以看到：
-- API 請求詳細資訊
-- 錯誤堆疊追蹤
-- 資料轉換過程
+### 醫師資料功能
+- 詳細醫師資訊
+- 專科分類
+- 診所資訊整合
+- 預約選擇功能
 
 ## 型別定義
 
-### API 回應型別
-
+### 看診進度型別
 ```typescript
-interface ApiDoctor {
-  id: string;
-  name: string;
-  specialty: string[];
-  title?: string;
-  image?: string;
-  education?: string[];
-  experience?: string[];
-  certifications?: string[];
-  expertise?: string[];
-  schedule?: { [key: string]: string[] };
-  introduction?: string;
+interface ScheduleProgress {
+  scheduleId: string;
+  doctorName: string;
+  clinicName: string;
+  timeSlot: string;
+  currentNumber: number;
+  totalCapacity: number;
+  progress: number; // 0-100 百分比
+  status: 'waiting' | 'in-progress' | 'completed';
 }
 ```
 
-### Hook 回應型別
-
+### API 參數型別
 ```typescript
-interface UseDoctorsReturn {
-  doctorsInfo: DoctorInfo[];  // 詳細醫師資料
-  doctors: Doctor[];          // 簡化醫師資料
-  loading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
+interface ScheduleParams {
+  page?: number;
+  limit?: number;
+  startDate?: string;
+  endDate?: string;
 }
 ```
 
@@ -161,39 +260,41 @@ interface UseDoctorsReturn {
 - 資料在組件生命週期內保持快取
 - 提供 `refetch` 方法手動重新載入
 
-### 載入狀態
-- 提供 loading 狀態指示器
-- 使用者友善的錯誤訊息
-- 平滑的 UI 轉場效果
+### 查詢優化
+- 支援分頁查詢
+- 日期範圍篩選
+- 時段篩選功能
 
 ## 未來擴展
 
 ### 可能的改進方向
-1. 增加資料快取機制（如 React Query）
-2. 實現離線支援
-3. 添加更多 API 端點支援
-4. 實現即時資料更新（WebSocket）
+1. WebSocket 即時更新
+2. 離線資料快取
+3. 推播通知整合
+4. 更多查詢篩選條件
 
-### 新增 API 端點
-要添加新的 API 端點，請：
-1. 在 `api.ts` 中增加端點配置
-2. 在 `apiService.ts` 中實現對應方法
-3. 建立相應的 Hook
-4. 更新型別定義
+### 新增功能建議
+1. 預約狀態查詢
+2. 病患資料管理
+3. 醫師排班管理
+4. 統計分析功能
 
 ## 注意事項
 
-1. **安全性**: Bearer Token 目前是寫死的，生產環境應該使用動態獲取
-2. **CORS**: 確保 API 伺服器允許前端域名的跨域請求
-3. **錯誤監控**: 建議在生產環境中添加錯誤監控服務
-4. **API 版本**: 注意 API 版本兼容性問題
+1. **認證**: LINE User ID 目前是寫死的，生產環境應該動態獲取
+2. **時區**: 注意 API 時間格式和本地時區轉換
+3. **效能**: 大量資料時考慮分頁和虛擬滾動
+4. **即時性**: 看診進度建議定期更新或使用 WebSocket
 
 ## 支援與維護
 
-如有 API 相關問題，請檢查：
-1. 網路連接狀態
-2. Bearer Token 是否有效
-3. API 伺服器是否正常運行
-4. 瀏覽器 Console 中的錯誤訊息
+### 除錯步驟
+1. 檢查網路連接狀態
+2. 確認 LINE User ID 是否有效
+3. 檢查 API 伺服器運行狀態
+4. 查看瀏覽器 Console 錯誤訊息
 
-開發者可以通過 `/api-test` 頁面快速診斷 API 連接問題。 
+### 開發工具
+- 瀏覽器 DevTools 查看 API 請求
+- Console 日誌記錄詳細資訊
+- Network 標籤監控請求狀態 

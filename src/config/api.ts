@@ -7,14 +7,21 @@ const getBaseUrl = () => {
   return 'http://tw1.openvpns.org:30001'; // 生產環境直接訪問
 };
 
+// LINE User ID (可從環境變數或其他地方獲取)
+export const LINE_USER_ID = 'U66bfb7dabdef424cd78c29bd352fc4cb';
+
 export const API_CONFIG = {
   BASE_URL: getBaseUrl(),
   ENDPOINTS: {
     DOCTORS: '/doctors',
     DOCTOR_BY_ID: (id: string) => `/doctors/${id}`,
+    SCHEDULES: '/schedules',
+    PATIENTS: '/patients',
+    PATIENT_BY_ID: (id: string) => `/patients/${id}`,
   },
-  HEADERS: {
+  getHeaders: (lineUserId: string = LINE_USER_ID) => ({
     'Content-Type': 'application/json',
-    'Authorization': `Bearer U66bfb7dabdef424cd78c29bd352fc4cb`,
-  },
+    'accept': 'application/json',
+    'x-line-id': lineUserId,
+  }),
 } as const; 

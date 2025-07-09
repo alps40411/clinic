@@ -3,6 +3,7 @@ import { Search, Calendar, Clock, User, Trash2, Edit3, CheckCircle, AlertCircle 
 import { mockAppointments } from '../data/mockData';
 import { Appointment } from '../types/appointment';
 import { formatDateDisplay, isEditDeleteAllowed, validateIdNumber } from '../utils/dateUtils';
+import { usePatients } from '../hooks/usePatients';
 
 interface PatientLookupProps {
   onEditAppointment?: (appointment: Appointment) => void;
@@ -18,6 +19,7 @@ const PatientLookup: React.FC<PatientLookupProps> = ({
   const [hasSearched, setHasSearched] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const { searchPatientByIdNumber } = usePatients();
 
   const handleSearch = async () => {
     if (!validateIdNumber(idNumber)) {
@@ -28,15 +30,30 @@ const PatientLookup: React.FC<PatientLookupProps> = ({
     setError('');
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      const userAppointments = mockAppointments.filter(
-        apt => apt.patientId === idNumber
-      );
-      setAppointments(userAppointments);
-      setHasSearched(true);
+    try {
+      // 先使用 API 搜尋患者
+      const patient = await searchPatientByIdNumber(idNumber);
+      
+      if (patient) {
+        // 如果找到患者，顯示相關的預約記錄
+        const userAppointments = mockAppointments.filter(
+          apt => apt.patientId === idNumber
+        );
+        setAppointments(userAppointments);
+        setHasSearched(true);
+      } else {
+        setError('找不到該身分證字號的患者資料');
+        setAppointments([]);
+        setHasSearched(false);
+      }
+    } catch (err) {
+      console.error('搜尋患者時發生錯誤:', err);
+      setError('搜尋時發生錯誤，請稍後再試');
+      setAppointments([]);
+      setHasSearched(false);
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   const handleDelete = (appointmentId: string) => {

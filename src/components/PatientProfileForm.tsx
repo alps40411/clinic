@@ -8,12 +8,14 @@ interface PatientProfileFormProps {
   editingProfile?: PatientProfile | null;
   onSave: (profileData: PatientFormData) => void;
   onCancel: () => void;
+  loading?: boolean;
 }
 
 const PatientProfileForm: React.FC<PatientProfileFormProps> = ({
   editingProfile,
   onSave,
-  onCancel
+  onCancel,
+  loading = false
 }) => {
   const [formData, setFormData] = useState<PatientFormData>({
     name: '',
@@ -113,11 +115,13 @@ const PatientProfileForm: React.FC<PatientProfileFormProps> = ({
 
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      onSave(formData);
+    try {
+      await onSave(formData);
+    } catch (error) {
+      console.error('提交表單時發生錯誤:', error);
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
   };
 
   return (

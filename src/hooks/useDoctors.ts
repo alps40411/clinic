@@ -5,6 +5,7 @@ import { apiService, ApiDoctorsResponse } from '../services/apiService';
 import { convertApiToDoctorInfoArray, convertApiToDoctorArray } from '../utils/doctorUtils';
 import { doctorsInfo } from '../data/doctorData';
 import { doctors as mockDoctors } from '../data/mockData';
+import { LINE_USER_ID } from '../config/api';
 
 interface UseDoctorsReturn {
   doctorsInfo: DoctorInfo[];
@@ -14,7 +15,7 @@ interface UseDoctorsReturn {
   refetch: () => Promise<void>;
 }
 
-export const useDoctors = (): UseDoctorsReturn => {
+export const useDoctors = (lineUserId: string = LINE_USER_ID): UseDoctorsReturn => {
   const [doctorsInfoState, setDoctorsInfoState] = useState<DoctorInfo[]>(doctorsInfo);
   const [doctorsState, setDoctorsState] = useState<Doctor[]>(mockDoctors);
   const [loading, setLoading] = useState(false);
@@ -25,17 +26,13 @@ export const useDoctors = (): UseDoctorsReturn => {
     setError(null);
     
     try {
-      const response = await apiService.getDoctors();
+      const response = await apiService.getDoctors(lineUserId);
       
       if (response.success && response.data) {
         try {
           // 轉換 API 資料為所需格式
-          console.log('原始 API 資料:', response.data);
-          
           const apiDoctorsInfo = convertApiToDoctorInfoArray(response.data);
           const apiDoctors = convertApiToDoctorArray(response.data);
-          
-          console.log('轉換後的醫師資料:', { apiDoctorsInfo, apiDoctors });
           
           // 如果轉換後有資料，使用 API 資料；否則使用本地資料
           if (apiDoctorsInfo.length > 0) {

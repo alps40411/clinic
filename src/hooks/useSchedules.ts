@@ -1,0 +1,55 @@
+import { useState, useEffect } from 'react';
+import { ScheduleProgress } from '../types/schedule';
+import { apiService, ScheduleParams, ApiSchedulesResponse } from '../services/apiService';
+import { convertApiToScheduleProgressArray } from '../utils/scheduleUtils';
+import { LINE_USER_ID } from '../config/api';
+
+interface UseSchedulesReturn {
+  schedules: ScheduleProgress[];
+  loading: boolean;
+  error: string | null;
+  refetch: (params?: ScheduleParams) => Promise<void>;
+}
+
+export const useSchedules = (
+  initialParams: ScheduleParams = {},
+  lineUserId: string = LINE_USER_ID
+): UseSchedulesReturn => {
+  const [schedules, setSchedules] = useState<ScheduleProgress[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchSchedules = async (params: ScheduleParams = initialParams) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await apiService.getSchedules(params, lineUserId);
+      
+      if (response.success && response.data) {
+        const schedulesData = convertApiToScheduleProgressArray(response.data.data);
+        setSchedules(schedulesData);
+      } else {
+        setError(response.message || 'API 呼叫失敗');
+        setSchedules([]);
+      }
+    } catch (err) {
+      console.error('獲取看診進度時發生錯誤:', err);
+      setError(err instanceof Error ? err.message : '未知錯誤');
+      setSchedules([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSchedules(initialParams);
+  }, [lineUserId]);
+
+  return {
+    schedules,
+    loading,
+    error,
+    refetch: fetchSchedules,
+  };
+}; 

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Users, Plus, Edit3, Trash2, User, Phone, Mail, MapPin, Heart, AlertTriangle, FileText, Eye, X } from 'lucide-react';
 import { PatientProfile } from '../types/patient';
-import { mockPatientProfiles, bloodTypes } from '../data/patientData';
+import { bloodTypes } from '../data/patientData';
+import { usePatients } from '../hooks/usePatients';
 
 interface PatientProfileListProps {
   onAddProfile: () => void;
@@ -12,14 +13,18 @@ const PatientProfileList: React.FC<PatientProfileListProps> = ({
   onAddProfile,
   onEditProfile
 }) => {
-  const [profiles, setProfiles] = useState<PatientProfile[]>(mockPatientProfiles);
+  const { patients, deletePatient, loading, error } = usePatients();
   const [selectedProfile, setSelectedProfile] = useState<PatientProfile | null>(null);
 
-  const handleDelete = (profileId: string) => {
-    const profile = profiles.find(p => p.id === profileId);
+  const handleDelete = async (profileId: string) => {
+    const profile = patients.find(p => p.id === profileId);
     if (profile && window.confirm(`確定要刪除 ${profile.name} 的資料嗎？`)) {
-      setProfiles(prev => prev.filter(p => p.id !== profileId));
-      alert('使用者資料已成功刪除');
+      const success = await deletePatient(profileId);
+      if (success) {
+        alert('使用者資料已成功刪除');
+      } else {
+        alert(`刪除失敗：${error || '未知錯誤'}`);
+      }
     }
   };
 
@@ -236,7 +241,20 @@ const PatientProfileList: React.FC<PatientProfileListProps> = ({
 
         {/* Profiles List */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          {profiles.length === 0 ? (
+          {/* Loading and Error States */}
+          {loading && (
+            <div className="flex justify-center py-8">
+              <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+          
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-center">
+              <p className="text-red-600">{error}</p>
+            </div>
+          )}
+
+          {patients.length === 0 && !loading ? (
             <div className="text-center py-8 text-gray-500">
               <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p className="mb-4">尚未新增任何使用者資料</p>
@@ -251,9 +269,9 @@ const PatientProfileList: React.FC<PatientProfileListProps> = ({
           ) : (
             <div className="space-y-4">
               <h3 className="font-medium text-gray-800 mb-4">
-                已儲存 {profiles.length} 筆使用者資料
+                已儲存 {patients.length} 筆使用者資料
               </h3>
-              {profiles.map((profile) => (
+              {patients.map((profile) => (
                 <div key={profile.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow duration-200">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center">

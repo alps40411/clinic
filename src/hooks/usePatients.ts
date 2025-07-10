@@ -22,7 +22,7 @@ interface UsePatientsReturn {
 }
 
 export const usePatients = (lineUserId: string = LINE_USER_ID): UsePatientsReturn => {
-  const [patients, setPatients] = useState<PatientProfile[]>(mockPatientProfiles);
+  const [patients, setPatients] = useState<PatientProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,13 +31,32 @@ export const usePatients = (lineUserId: string = LINE_USER_ID): UsePatientsRetur
     setError(null);
     
     try {
-      // 注意：這裡我們暫時不呼叫 GET /patients API，因為用戶說不使用它
-      // 但我們可以維護本地的患者列表狀態
-      setPatients(mockPatientProfiles);
+      const response = await apiService.getPatients(lineUserId);
+      
+      if (response.success && response.data) {
+        try {
+          // 轉換 API 資料為所需格式
+          const apiPatients = convertApiToPatientProfileArray(response.data.data);
+          console.log('API 返回的患者資料:', apiPatients);
+          
+          // 直接使用 API 資料，不再使用本地資料
+          setPatients(apiPatients);
+        } catch (conversionError) {
+          console.error('患者資料轉換錯誤:', conversionError);
+          setError(`資料轉換失敗: ${conversionError instanceof Error ? conversionError.message : '未知錯誤'}`);
+          setPatients([]);
+        }
+      } else {
+        // API 失敗時顯示空陣列
+        console.warn('API 獲取患者資料失敗:', response.message);
+        setError(response.message || 'API 呼叫失敗');
+        setPatients([]);
+      }
     } catch (err) {
+      // 網路錯誤或其他異常時顯示空陣列
       console.error('獲取患者列表時發生錯誤:', err);
       setError(err instanceof Error ? err.message : '未知錯誤');
-      setPatients(mockPatientProfiles);
+      setPatients([]);
     } finally {
       setLoading(false);
     }
@@ -48,7 +67,7 @@ export const usePatients = (lineUserId: string = LINE_USER_ID): UsePatientsRetur
     setError(null);
     
     try {
-      const apiData = convertPatientFormToApiCreate(formData);
+      const apiData = convertPatientFormToApiCreate(formData, lineUserId);
       const response = await apiService.createPatient(apiData, lineUserId);
       
       if (response.success && response.data) {
@@ -73,7 +92,7 @@ export const usePatients = (lineUserId: string = LINE_USER_ID): UsePatientsRetur
     setError(null);
     
     try {
-      const apiData = convertPatientFormToApiCreate(formData);
+      const apiData = convertPatientFormToApiCreate(formData, lineUserId);
       const response = await apiService.updatePatient(id, apiData, lineUserId);
       
       if (response.success && response.data) {
@@ -126,11 +145,14 @@ export const usePatients = (lineUserId: string = LINE_USER_ID): UsePatientsRetur
       if (response.success && response.data) {
         return convertApiToPatientProfile(response.data);
       } else {
-        setError(response.message || '獲取患者資料失敗');
+        // API 失敗時返回 null
+        console.warn(`API 獲取患者 ${id} 資料失敗:`, response.message);
+        setError(response.message || 'API 呼叫失敗');
         return null;
       }
     } catch (err) {
-      console.error('獲取患者資料時發生錯誤:', err);
+      // 網路錯誤或其他異常時返回 null
+      console.error(`獲取患者 ${id} 資料時發生錯誤:`, err);
       setError(err instanceof Error ? err.message : '未知錯誤');
       return null;
     } finally {
@@ -148,11 +170,14 @@ export const usePatients = (lineUserId: string = LINE_USER_ID): UsePatientsRetur
       if (response.success && response.data) {
         return convertApiToPatientProfile(response.data);
       } else {
-        setError(response.message || '找不到該身分證字號的患者資料');
+        // API 失敗時返回 null
+        console.warn(`API 搜尋患者 ${idNumber} 失敗:`, response.message);
+        setError(response.message || 'API 呼叫失敗');
         return null;
       }
     } catch (err) {
-      console.error('搜尋患者時發生錯誤:', err);
+      // 網路錯誤或其他異常時返回 null
+      console.error(`搜尋患者 ${idNumber} 時發生錯誤:`, err);
       setError(err instanceof Error ? err.message : '未知錯誤');
       return null;
     } finally {

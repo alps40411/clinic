@@ -1,5 +1,6 @@
 import { PatientProfile, PatientFormData } from '../types/patient';
 import { ApiPatient, PatientCreateData } from '../services/apiService';
+import { LINE_USER_ID } from '../config/api';
 
 // 將 API 資料轉換為 PatientProfile 格式
 export const convertApiToPatientProfile = (apiPatient: ApiPatient): PatientProfile => {
@@ -10,31 +11,37 @@ export const convertApiToPatientProfile = (apiPatient: ApiPatient): PatientProfi
     phone: apiPatient.phone,
     email: apiPatient.email,
     birthDate: apiPatient.birthDate,
-    address: apiPatient.address,
-    emergencyContact: apiPatient.emergencyContact,
-    emergencyPhone: apiPatient.emergencyPhone,
-    bloodType: apiPatient.bloodType,
-    allergies: apiPatient.allergies,
-    medicalHistory: apiPatient.medicalHistory,
-    createdAt: apiPatient.createdAt,
-    updatedAt: apiPatient.updatedAt,
+    address: apiPatient.address || '',
+    emergencyContact: apiPatient.emergencyContact || '',
+    emergencyPhone: apiPatient.emergencyPhone || '',
+    bloodType: apiPatient.bloodType || '',
+    allergies: apiPatient.allergies || '',
+    medicalHistory: apiPatient.medicalHistory || '',
+    createdAt: apiPatient.createdAt || '',
+    updatedAt: apiPatient.updatedAt || '',
   };
 };
 
 // 將 PatientFormData 轉換為 API 創建格式
-export const convertPatientFormToApiCreate = (formData: PatientFormData): PatientCreateData => {
+export const convertPatientFormToApiCreate = (formData: PatientFormData, lineUserId: string = LINE_USER_ID): PatientCreateData => {
+  // 將 birthDate 保持為 YYYY-MM-DD 格式
+  let birthDateFormatted = formData.birthDate;
+  if (formData.birthDate.length === 8) {
+    // 如果是 8 位數字格式，轉換為 YYYY-MM-DD
+    const year = formData.birthDate.slice(0, 4);
+    const month = formData.birthDate.slice(4, 6);
+    const day = formData.birthDate.slice(6, 8);
+    birthDateFormatted = `${year}-${month}-${day}`;
+  }
+  
   return {
+    lineId: lineUserId,
     name: formData.name,
     idNumber: formData.idNumber,
+    birthDate: birthDateFormatted, // 保持 YYYY-MM-DD 格式
     phone: formData.phone,
     email: formData.email,
-    birthDate: formData.birthDate,
-    address: formData.address,
-    emergencyContact: formData.emergencyContact,
-    emergencyPhone: formData.emergencyPhone,
-    bloodType: formData.bloodType || undefined,
-    allergies: formData.allergies || undefined,
-    medicalHistory: formData.medicalHistory || undefined,
+    isBlacklisted: false,
   };
 };
 
@@ -46,12 +53,6 @@ export const convertPatientProfileToForm = (profile: PatientProfile): PatientFor
     phone: profile.phone,
     email: profile.email,
     birthDate: profile.birthDate,
-    address: profile.address,
-    emergencyContact: profile.emergencyContact,
-    emergencyPhone: profile.emergencyPhone,
-    bloodType: profile.bloodType || '',
-    allergies: profile.allergies || '',
-    medicalHistory: profile.medicalHistory || '',
   };
 };
 

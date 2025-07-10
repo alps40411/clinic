@@ -72,21 +72,24 @@ export interface ScheduleParams {
 
 export interface ApiPatient {
   id: number;
+  lineId: string;
   name: string;
   idNumber: string;
+  birthDate: string;
   phone: string;
   email: string;
-  birthDate: string;
-  address: string;
-  emergencyContact: string;
-  emergencyPhone: string;
+  isBlacklisted: boolean;
+  // 保留其他後端可能回傳的欄位
+  address?: string;
+  emergencyContact?: string;
+  emergencyPhone?: string;
   bloodType?: string;
   allergies?: string;
   medicalHistory?: string;
-  isDeleted: boolean;
-  deletedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
+  isDeleted?: boolean;
+  deletedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ApiPatientsResponse {
@@ -100,22 +103,16 @@ export interface ApiPatientsResponse {
 }
 
 export interface PatientCreateData {
+  lineId: string;
   name: string;
   idNumber: string;
+  birthDate: string; // YYYY-MM-DD 格式
   phone: string;
   email: string;
-  birthDate: string;
-  address: string;
-  emergencyContact: string;
-  emergencyPhone: string;
-  bloodType?: string;
-  allergies?: string;
-  medicalHistory?: string;
+  isBlacklisted: boolean;
 }
 
-export interface PatientUpdateData extends PatientCreateData {
-  id: number;
-}
+
 
 class ApiService {
   private async request<T>(endpoint: string, lineUserId: string = LINE_USER_ID): Promise<ApiResponse<T>> {
@@ -151,6 +148,10 @@ class ApiService {
 
   async getDoctorById(id: string, lineUserId?: string): Promise<ApiResponse<ApiDoctor>> {
     return this.request<ApiDoctor>(API_CONFIG.ENDPOINTS.DOCTOR_BY_ID(id), lineUserId);
+  }
+
+  async getPatients(lineUserId?: string): Promise<ApiResponse<ApiPatientsResponse>> {
+    return this.request<ApiPatientsResponse>(API_CONFIG.ENDPOINTS.PATIENTS_BY_LINE, lineUserId);
   }
 
   async getSchedules(params: ScheduleParams = {}, lineUserId?: string): Promise<ApiResponse<ApiSchedulesResponse>> {
@@ -347,7 +348,7 @@ class ApiService {
       const queryParams = new URLSearchParams();
       queryParams.append('idNumber', idNumber);
       
-      const endpoint = `${API_CONFIG.ENDPOINTS.PATIENTS}?${queryParams.toString()}`;
+      const endpoint = `${API_CONFIG.ENDPOINTS.PATIENTS_BY_LINE}?${queryParams.toString()}`;
       
       console.log('根據身分證字號搜尋患者請求:', {
         url: `${API_CONFIG.BASE_URL}${endpoint}`,

@@ -17,6 +17,7 @@ export const API_CONFIG = {
     DOCTOR_BY_ID: (id: string) => `/doctors/${id}`,
     SCHEDULES: '/schedules',
     PATIENTS: '/patients',
+    PATIENTS_BY_LINE: '/patients/line',
     PATIENT_BY_ID: (id: string) => `/patients/${id}`,
   },
   getHeaders: (lineUserId: string = LINE_USER_ID) => ({

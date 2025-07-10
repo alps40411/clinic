@@ -17,7 +17,7 @@
 ```bash
 git add .
 git commit -m "Setup GitHub Pages deployment"
-git push origin deploy
+git push origin main
 ```
 
 部署將自動開始，您可以在 "Actions" 標籤中查看進度。部署過程分為兩個階段：
@@ -51,6 +51,22 @@ npm run deploy
 
 ## 故障排除
 
+### 環境保護規則錯誤
+如果遇到 "Branch is not allowed to deploy due to environment protection rules" 錯誤：
+
+1. **確保從 main 分支部署**：
+   - 工作流程現已設定為監聽 `main` 分支
+   - 將所有變更合併到 `main` 分支再推送
+
+2. **檢查 Actions 權限**：
+   - 前往 Repository Settings > Actions > General
+   - 在 "Workflow permissions" 部分選擇 "Read and write permissions"
+   - 勾選 "Allow GitHub Actions to create and approve pull requests"
+
+3. **檢查 Pages 設定**：
+   - 前往 Repository Settings > Pages
+   - 確保 Source 設為 "GitHub Actions"
+
 ### Git 權限錯誤（退出代碼 128）
 如果遇到 "git failed with exit code 128" 錯誤：
 
@@ -66,7 +82,7 @@ npm run deploy
 3. **重新推送觸發部署**：
    ```bash
    git commit --allow-empty -m "Trigger deployment"
-   git push origin deploy
+   git push origin main
    ```
 
 ### 其他常見問題
@@ -75,5 +91,6 @@ npm run deploy
 - 查看 GitHub Actions 日誌以診斷建構問題
 
 ## 分支說明
-- **deploy**: 部署分支，推送到此分支會觸發自動部署
+- **main**: 主要開發和部署分支，推送到此分支會觸發自動部署
+- **deploy**: 開發分支，變更應先合併到 main 分支
 - **gh-pages**: GitHub Pages 自動生成的分支，包含建構後的靜態檔案 

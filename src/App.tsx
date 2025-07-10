@@ -5,7 +5,7 @@ import { routes } from './pages/routes';
 
 function App() {
   return (
-    <Router>
+    <Router basename="/clinic">
       <Layout>
         <Routes>
           {routes.map((route) => (

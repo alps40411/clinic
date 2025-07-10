@@ -43,8 +43,15 @@ export const useSchedules = (
   };
 
   useEffect(() => {
-    fetchSchedules(initialParams);
-  }, [lineUserId]);
+    // 只有當參數有效時才調用 API
+    if (initialParams.startDate && initialParams.endDate) {
+      console.log('useSchedules: 調用 API，參數:', initialParams);
+      fetchSchedules(initialParams);
+    } else {
+      console.log('useSchedules: 參數無效，清空排班資料');
+      setSchedules([]);
+    }
+  }, [JSON.stringify(initialParams), lineUserId]);
 
   return {
     schedules,

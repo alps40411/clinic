@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Calendar, Phone, Mail, MapPin, Clock, Users, FileText, ChevronDown, Send, CheckCircle, List } from 'lucide-react';
+import { MessageSquare, Calendar, Phone, Mail, MapPin, Clock, Users, FileText, ChevronDown, Send, CheckCircle, List, AlertTriangle } from 'lucide-react';
 import { ConsultationForm as ConsultationFormType, DropdownOption, ConsultationRecord } from '../types/consultation';
 import { 
   clinicLocations, 
@@ -8,6 +8,7 @@ import {
   howDidYouKnowOptions, 
   consultants 
 } from '../data/consultationData';
+import { useConsultations } from '../hooks/useConsultations';
 
 interface DropdownProps {
   label: string;
@@ -86,6 +87,8 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
   editingRecord, 
   onClearEdit 
 }) => {
+  const { createConsultation, updateConsultation, loading, error, clearError } = useConsultations();
+  
   const [formData, setFormData] = useState<ConsultationFormType>({
     birthDate: '',
     phone: '',
@@ -101,7 +104,6 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
   });
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   // Load editing record data
@@ -168,19 +170,39 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
     
     if (!validateForm()) return;
 
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // 清除之前的錯誤
+      clearError();
+
+      // 將表單資料轉換為 API 格式
+      const consultationData = {
+        consultationDetails: {
+          type: formData.consultationTopic,
+          status: 'pending' as const,
+          notes: formData.notes || undefined,
+          // 可以根據需要添加其他欄位
+        }
+      };
+
+      if (editingRecord) {
+        // 更新現有諮詢
+        await updateConsultation(editingRecord.id, consultationData);
+      } else {
+        // 建立新諮詢
+        await createConsultation(consultationData);
+      }
+
       console.log('Consultation form submitted:', formData);
-      setIsSubmitting(false);
       setIsSubmitted(true);
       
       // Clear editing state if applicable
       if (editingRecord && onClearEdit) {
         onClearEdit();
       }
-    }, 1500);
+    } catch (err) {
+      console.error('提交諮詢失敗:', err);
+      // 錯誤已經在 hook 中處理，這裡不需要額外處理
+    }
   };
 
   const resetForm = () => {
@@ -272,6 +294,18 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
         <div className="text-center mb-6">
           <p className="text-gray-600">請填寫以下資訊，我們將盡快與您聯繫</p>
         </div>
+
+        {/* API Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+              <p className="text-red-800 text-sm">
+                <strong>提交失敗：</strong>{error}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Form */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -410,10 +444,10 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={loading}
               className="w-full bg-cyan-500 text-white py-4 px-6 rounded-lg font-medium hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
             >
-              {isSubmitting ? (
+              {loading ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   {editingRecord ? '更新中...' : '送出中...'}

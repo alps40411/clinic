@@ -16,6 +16,7 @@ export interface Appointment {
   patientId: string;
   doctorId: string;
   doctorName: string;
+  clinicId: string; // 添加診間ID
   date: string;
   timeSlot: string;
   status: 'confirmed' | 'pending' | 'cancelled';

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Search, FileText, Calendar, Phone, Mail, MapPin, MessageSquare, Clock, Users, Trash2, Edit3, ArrowLeft, Eye, AlertCircle } from 'lucide-react';
-import { ConsultationRecord } from '../types/consultation';
+import { ConsultationRecord, ConsultationResponseDto } from '../types/consultation';
 import { mockConsultationRecords, clinicLocations, consultationTopics, availableTimes, howDidYouKnowOptions, consultants } from '../data/consultationData';
+import { useConsultations } from '../hooks/useConsultations';
 
 interface ConsultationRecordsProps {
   onBackToForm: () => void;
@@ -9,42 +10,92 @@ interface ConsultationRecordsProps {
 }
 
 const ConsultationRecords: React.FC<ConsultationRecordsProps> = ({ onBackToForm, onEditRecord }) => {
+  const { consultations, getConsultationsByLine, deleteConsultation, loading, error, clearError } = useConsultations();
   const [searchPhone, setSearchPhone] = useState('');
   const [records, setRecords] = useState<ConsultationRecord[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [localError, setLocalError] = useState('');
   const [selectedRecord, setSelectedRecord] = useState<ConsultationRecord | null>(null);
+
+  // 計算要顯示的記錄：優先 API 資料，否則顯示模擬資料
+  const displayRecords = React.useMemo(() => {
+    if (consultations.length > 0) {
+      return consultations.map((consultation) => ({
+        id: consultation.id,
+        recordNumber: `CONS-${consultation.id}`,
+        birthDate: '', 
+        phone: '', 
+        email: '', 
+        clinicLocation: 'API諮詢',
+        consultationTopic: consultation.consultationDetails.consultationTopic || consultation.consultationDetails.type || '',
+        availableTime: '', 
+        howDidYouKnow: '', 
+        preferredConsultant: '', 
+        notes: consultation.consultationDetails.notes || '',
+        status: (consultation.consultationDetails.status || 'pending') as 'pending' | 'contacted' | 'completed' | 'cancelled',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      } as ConsultationRecord));
+    }
+    return records;
+  }, [consultations, records]);
+
+  // 自動載入當前用戶的諮詢記錄
+  const loadConsultations = useCallback(async () => {
+    try {
+      console.log('開始載入諮詢記錄...');
+      clearError();
+      setLocalError('');
+      
+      const result = await getConsultationsByLine({ page: 1, limit: 20 });
+      console.log('API 回應:', result);
+      
+      setHasSearched(true);
+    } catch (err) {
+      console.error('載入諮詢記錄失敗:', err);
+      // API 失敗時，顯示模擬數據以免頁面空白
+      setRecords(mockConsultationRecords.slice(0, 3)); // 顯示前3筆模擬資料
+      setHasSearched(true);
+      setLocalError('無法連接到伺服器，顯示範例資料');
+    }
+  }, [getConsultationsByLine, clearError]);
+
+  useEffect(() => {
+    loadConsultations();
+  }, [loadConsultations]);
 
   const handleSearch = async () => {
     if (!searchPhone.trim()) {
-      setError('請輸入電話號碼');
+      setLocalError('請輸入電話號碼');
       return;
     }
 
     if (!/^09\d{8}$/.test(searchPhone)) {
-      setError('電話號碼格式不正確');
+      setLocalError('電話號碼格式不正確');
       return;
     }
 
-    setError('');
-    setIsLoading(true);
+    setLocalError('');
     
-    // Simulate API call
-    setTimeout(() => {
-      const userRecords = mockConsultationRecords.filter(
-        record => record.phone === searchPhone
-      );
-      setRecords(userRecords);
-      setHasSearched(true);
-      setIsLoading(false);
-    }, 500);
+    // 模擬根據電話號碼搜尋（實際上會使用 API 諮詢記錄）
+    const userRecords = mockConsultationRecords.filter(
+      record => record.phone === searchPhone
+    );
+    setRecords(userRecords);
+    setHasSearched(true);
   };
 
-  const handleDelete = (recordId: string) => {
+  const handleDelete = async (recordId: string) => {
     if (window.confirm('確定要刪除此諮詢紀錄嗎？')) {
-      setRecords(prev => prev.filter(record => record.id !== recordId));
-      alert('諮詢紀錄已成功刪除');
+      try {
+        await deleteConsultation(recordId);
+        // 重新載入諮詢記錄
+        await loadConsultations();
+        alert('諮詢紀錄已成功刪除');
+      } catch (err) {
+        console.error('刪除諮詢失敗:', err);
+        alert('刪除失敗，請稍後再試');
+      }
     }
   };
 
@@ -222,17 +273,17 @@ const ConsultationRecords: React.FC<ConsultationRecordsProps> = ({ onBackToForm,
                   value={searchPhone}
                   onChange={(e) => {
                     setSearchPhone(e.target.value);
-                    setError('');
+                    setLocalError('');
                   }}
                   placeholder="請輸入手機號碼"
                   className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
                 />
                 <button
                   onClick={handleSearch}
-                  disabled={isLoading || !searchPhone}
+                  disabled={loading || !searchPhone}
                   className="px-6 py-3 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2 font-medium"
                 >
-                  {isLoading ? (
+                  {loading ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <Search className="w-4 h-4" />
@@ -240,10 +291,10 @@ const ConsultationRecords: React.FC<ConsultationRecordsProps> = ({ onBackToForm,
                   查詢
                 </button>
               </div>
-              {error && (
+              {(error || localError) && (
                 <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
                   <AlertCircle className="w-4 h-4" />
-                  {error}
+                  {error || localError}
                 </p>
               )}
             </div>
@@ -253,7 +304,15 @@ const ConsultationRecords: React.FC<ConsultationRecordsProps> = ({ onBackToForm,
         {/* Results */}
         {hasSearched && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            {records.length === 0 ? (
+            {/* 顯示錯誤或警告信息 */}
+            {localError && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                <p className="text-yellow-800 text-sm">{localError}</p>
+              </div>
+            )}
+            
+            {/* 顯示記錄內容 */}
+            {displayRecords.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
                 <p>查無諮詢紀錄</p>
@@ -261,9 +320,12 @@ const ConsultationRecords: React.FC<ConsultationRecordsProps> = ({ onBackToForm,
             ) : (
               <div className="space-y-4">
                 <h3 className="font-medium text-gray-800 mb-4">
-                  找到 {records.length} 筆諮詢紀錄
+                  找到 {displayRecords.length} 筆諮詢紀錄
+                  {consultations.length === 0 && records.length > 0 && (
+                    <span className="text-sm text-yellow-600 ml-2">(範例資料)</span>
+                  )}
                 </h3>
-                {records.map((record) => (
+                {displayRecords.map((record) => (
                   <div key={record.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow duration-200">
                     <div className="flex justify-between items-start mb-3">
                       <div>

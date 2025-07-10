@@ -14,6 +14,8 @@ const AppointmentBooking: React.FC = () => {
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
+  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
+  const [selectedScheduleData, setSelectedScheduleData] = useState<any>(null);
   const [appointmentData, setAppointmentData] = useState<any>(null);
 
   const handleBookingSubmit = (patientInfo: any) => {
@@ -32,8 +34,16 @@ const AppointmentBooking: React.FC = () => {
     setSelectedDoctor(null);
     setSelectedDate(null);
     setSelectedTimeSlot(null);
+    setSelectedScheduleId(null);
+    setSelectedScheduleData(null);
     setAppointmentData(null);
     setCurrentView('booking');
+  };
+
+  const handleTimeSlotSelect = (timeSlot: string, scheduleId: string, scheduleData: any) => {
+    setSelectedTimeSlot(timeSlot);
+    setSelectedScheduleId(scheduleId);
+    setSelectedScheduleData(scheduleData);
   };
 
   if (currentView === 'success') {
@@ -128,37 +138,44 @@ const AppointmentBooking: React.FC = () => {
         </div>
 
         <div className="text-center mb-6">
-          <p className="text-gray-600">請依序選擇醫師、日期和時段完成預約</p>
+          <p className="text-gray-600">請依序選擇醫師、日期、時段並確認病患資料完成預約</p>
         </div>
 
         {/* Progress Indicator */}
         <div className="flex items-center justify-center mb-6">
-          <div className="flex items-center space-x-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+          <div className="flex items-center space-x-1">
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
               selectedDoctor ? 'bg-cyan-500 text-white' : 'bg-gray-200 text-gray-500'
             }`}>
               1
             </div>
-            <div className={`w-8 h-1 ${selectedDoctor ? 'bg-cyan-500' : 'bg-gray-200'}`}></div>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+            <div className={`w-4 h-0.5 ${selectedDoctor ? 'bg-cyan-500' : 'bg-gray-200'}`}></div>
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
               selectedDate ? 'bg-cyan-500 text-white' : 'bg-gray-200 text-gray-500'
             }`}>
               2
             </div>
-            <div className={`w-8 h-1 ${selectedDate ? 'bg-cyan-500' : 'bg-gray-200'}`}></div>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+            <div className={`w-4 h-0.5 ${selectedDate ? 'bg-cyan-500' : 'bg-gray-200'}`}></div>
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
               selectedTimeSlot ? 'bg-cyan-500 text-white' : 'bg-gray-200 text-gray-500'
             }`}>
               3
+            </div>
+            <div className={`w-4 h-0.5 ${selectedTimeSlot ? 'bg-cyan-500' : 'bg-gray-200'}`}></div>
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+              selectedScheduleId ? 'bg-cyan-500 text-white' : 'bg-gray-200 text-gray-500'
+            }`}>
+              4
             </div>
           </div>
         </div>
 
         <div className="flex justify-center mb-6">
-          <div className="flex space-x-4 text-xs text-gray-500">
-            <span className={selectedDoctor ? 'text-cyan-600 font-medium' : ''}>選擇醫師</span>
-            <span className={selectedDate ? 'text-cyan-600 font-medium' : ''}>選擇日期</span>
-            <span className={selectedTimeSlot ? 'text-cyan-600 font-medium' : ''}>選擇時段</span>
+          <div className="flex space-x-2 text-xs text-gray-500">
+            <span className={selectedDoctor ? 'text-cyan-600 font-medium' : ''}>醫師</span>
+            <span className={selectedDate ? 'text-cyan-600 font-medium' : ''}>日期</span>
+            <span className={selectedTimeSlot ? 'text-cyan-600 font-medium' : ''}>時段</span>
+            <span className={selectedScheduleId ? 'text-cyan-600 font-medium' : ''}>確認</span>
           </div>
         </div>
 
@@ -177,16 +194,20 @@ const AppointmentBooking: React.FC = () => {
 
         {selectedDoctor && selectedDate && (
           <TimeSlotSelection
+            selectedDoctor={selectedDoctor}
+            selectedDate={selectedDate}
             selectedTimeSlot={selectedTimeSlot}
-            onSelectTimeSlot={setSelectedTimeSlot}
+            onSelectTimeSlot={handleTimeSlotSelect}
           />
         )}
 
-        {selectedDoctor && selectedDate && selectedTimeSlot && (
+        {selectedDoctor && selectedDate && selectedTimeSlot && selectedScheduleId && selectedScheduleData && (
           <BookingForm
             selectedDoctor={selectedDoctor}
             selectedDate={selectedDate}
             selectedTimeSlot={selectedTimeSlot}
+            selectedScheduleId={selectedScheduleId}
+            selectedScheduleData={selectedScheduleData}
             onSubmit={handleBookingSubmit}
           />
         )}

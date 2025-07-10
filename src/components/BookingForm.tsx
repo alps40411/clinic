@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
-import { User, Phone, Mail, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, Phone, Mail, CheckCircle, Search, Loader2, AlertCircle } from 'lucide-react';
 import { Doctor } from '../types/appointment';
 import { formatDateDisplay, validateIdNumber } from '../utils/dateUtils';
+import { usePatients } from '../hooks/usePatients';
+import { apiService } from '../services/apiService';
+import { PatientProfile } from '../types/patient';
 
 interface BookingFormProps {
   selectedDoctor: Doctor | null;
   selectedDate: string | null;
   selectedTimeSlot: string | null;
+  selectedScheduleId: string | null;
+  selectedScheduleData: any;
   onSubmit: (patientInfo: any) => void;
 }
 
@@ -14,84 +19,81 @@ const BookingForm: React.FC<BookingFormProps> = ({
   selectedDoctor,
   selectedDate,
   selectedTimeSlot,
+  selectedScheduleId,
+  selectedScheduleData,
   onSubmit
 }) => {
-  const [patientInfo, setPatientInfo] = useState({
-    idNumber: '',
-    name: '',
-    phone: '',
-    email: '',
-    lineId: ''
-  });
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // 第三步：選擇就診病患
+  const { patients, loading: patientsLoading, error: patientsError } = usePatients();
+  const [selectedPatient, setSelectedPatient] = useState<PatientProfile | null>(null);
+  const [isCreatingReservation, setIsCreatingReservation] = useState(false);
+  const [reservationError, setReservationError] = useState<string | null>(null);
+  
+  // 當有病患資料時，如果只有一個病患，自動選擇
+  useEffect(() => {
+    if (patients.length === 1 && !selectedPatient) {
+      setSelectedPatient(patients[0]);
+    }
+  }, [patients, selectedPatient]);
 
-  const validateForm = () => {
-    const newErrors: { [key: string]: string } = {};
-
-    if (!patientInfo.idNumber) {
-      newErrors.idNumber = '請輸入身分證字號';
-    } else if (!validateIdNumber(patientInfo.idNumber)) {
-      newErrors.idNumber = '身分證字號格式不正確';
+  // 第四步：建立預約掛號
+  const handleCreateReservation = async () => {
+    if (!selectedPatient || !selectedScheduleId || !selectedDoctor) {
+      setReservationError('請選擇病患和時段');
+      return;
     }
 
-    if (!patientInfo.name.trim()) {
-      newErrors.name = '請輸入姓名';
-    }
-
-    if (!patientInfo.phone.trim()) {
-      newErrors.phone = '請輸入手機號碼';
-    } else if (!/^09\d{8}$/.test(patientInfo.phone)) {
-      newErrors.phone = '手機號碼格式不正確';
-    }
-
-    if (!patientInfo.email.trim()) {
-      newErrors.email = '請輸入電子信箱';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(patientInfo.email)) {
-      newErrors.email = '電子信箱格式不正確';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    setIsCreatingReservation(true);
+    setReservationError(null);
     
-    if (!validateForm()) return;
-    if (!selectedDoctor || !selectedDate || !selectedTimeSlot) return;
+    try {
+      // 使用傳入的 selectedScheduleData 獲取 clinicId
+      if (!selectedScheduleData) {
+        setReservationError('找不到對應的排班資料');
+        return;
+      }
 
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      onSubmit({
-        ...patientInfo,
-        doctorId: selectedDoctor.id,
-        doctorName: selectedDoctor.name,
-        date: selectedDate,
-        timeSlot: selectedTimeSlot
-      });
-      setIsSubmitting(false);
-    }, 1000);
-  };
+      const appointmentData = {
+        scheduleId: parseInt(selectedScheduleId),
+        patientId: parseInt(selectedPatient.id),
+        doctorId: parseInt(selectedDoctor.id),
+        clinicId: selectedScheduleData.clinicId
+      };
 
-  const handleInputChange = (field: string, value: string) => {
-    setPatientInfo(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      const response = await apiService.createAppointment(appointmentData);
+      
+      if (response.success) {
+        // 預約成功，回傳資料給父組件
+        onSubmit({
+          ...selectedPatient,
+          doctorId: selectedDoctor?.id,
+          doctorName: selectedDoctor?.name,
+          date: selectedDate,
+          timeSlot: selectedTimeSlot,
+          scheduleId: selectedScheduleId,
+          reservationData: response.data
+        });
+      } else {
+        setReservationError(response.message || '預約失敗，請稍後再試');
+      }
+    } catch (error) {
+      console.error('建立預約時發生錯誤:', error);
+      setReservationError('建立預約時發生錯誤，請稍後再試');
+    } finally {
+      setIsCreatingReservation(false);
     }
   };
 
-  const isFormComplete = selectedDoctor && selectedDate && selectedTimeSlot;
+  const isFormComplete = selectedDoctor && selectedDate && selectedTimeSlot && selectedPatient && selectedScheduleId;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
       <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
         <User className="w-5 h-5 text-cyan-500" />
-        預約資訊
+        選擇病患與確認預約
       </h2>
 
+      {/* 預約摘要 */}
       {isFormComplete && (
         <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-4 mb-6">
           <h3 className="font-medium text-cyan-800 mb-2">預約摘要</h3>
@@ -103,108 +105,96 @@ const BookingForm: React.FC<BookingFormProps> = ({
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="idNumber" className="block text-sm font-medium text-gray-700 mb-2">
-            身分證字號 <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            id="idNumber"
-            value={patientInfo.idNumber}
-            onChange={(e) => handleInputChange('idNumber', e.target.value.toUpperCase())}
-            placeholder="請輸入身分證字號"
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 ${
-              errors.idNumber ? 'border-red-300' : 'border-gray-200'
-            }`}
-            maxLength={10}
-          />
-          {errors.idNumber && <p className="mt-1 text-sm text-red-600">{errors.idNumber}</p>}
-        </div>
+      {/* 第三步：病患選擇 */}
+      <div className="mb-6">
+        <h3 className="font-medium text-gray-800 mb-3">選擇就診病患</h3>
+        
+        {patientsLoading && (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-cyan-500 mr-2" />
+            <span className="text-gray-600">載入病患資料中...</span>
+          </div>
+        )}
+        
+        {patientsError && (
+          <div className="flex items-center py-4 mb-4 bg-yellow-50 border border-yellow-200 rounded-lg px-4">
+            <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0" />
+            <span className="text-yellow-800 text-sm">
+              無法載入病患資料：{patientsError}
+            </span>
+          </div>
+        )}
 
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-            姓名 <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            id="name"
-            value={patientInfo.name}
-            onChange={(e) => handleInputChange('name', e.target.value)}
-            placeholder="請輸入姓名"
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 ${
-              errors.name ? 'border-red-300' : 'border-gray-200'
-            }`}
-          />
-          {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
-        </div>
+        {!patientsLoading && patients.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            <User className="w-12 h-12 mx-auto mb-3 opacity-50" />
+            <p>目前沒有關聯的病患資料</p>
+            <p className="text-sm mt-1">請先在病患管理中新增病患資料</p>
+          </div>
+        )}
 
-        <div>
-          <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-            手機號碼 <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="tel"
-            id="phone"
-            value={patientInfo.phone}
-            onChange={(e) => handleInputChange('phone', e.target.value)}
-            placeholder="請輸入手機號碼"
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 ${
-              errors.phone ? 'border-red-300' : 'border-gray-200'
-            }`}
-          />
-          {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
-        </div>
+        {!patientsLoading && patients.length > 0 && (
+          <div className="space-y-2">
+            {patients.map((patient) => (
+              <div
+                key={patient.id}
+                onClick={() => setSelectedPatient(patient)}
+                className={`p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
+                  selectedPatient?.id === patient.id
+                    ? 'border-cyan-500 bg-cyan-50 shadow-sm'
+                    : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium text-gray-800">{patient.name}</h4>
+                    <p className="text-sm text-gray-600">身分證字號：{patient.idNumber}</p>
+                    <p className="text-sm text-gray-600">電話：{patient.phone}</p>
+                  </div>
+                  {selectedPatient?.id === patient.id && (
+                    <div className="w-5 h-5 bg-cyan-500 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-            電子信箱 <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="email"
-            id="email"
-            value={patientInfo.email}
-            onChange={(e) => handleInputChange('email', e.target.value)}
-            placeholder="請輸入電子信箱"
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 ${
-              errors.email ? 'border-red-300' : 'border-gray-200'
-            }`}
-          />
-          {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+      {/* 錯誤訊息 */}
+      {reservationError && (
+        <div className="flex items-center py-4 mb-4 bg-red-50 border border-red-200 rounded-lg px-4">
+          <AlertCircle className="w-5 h-5 text-red-600 mr-2 flex-shrink-0" />
+          <span className="text-red-800 text-sm">{reservationError}</span>
         </div>
+      )}
 
-        <div>
-          <label htmlFor="lineId" className="block text-sm font-medium text-gray-700 mb-2">
-            LINE ID（選填）
-          </label>
-          <input
-            type="text"
-            id="lineId"
-            value={patientInfo.lineId}
-            onChange={(e) => handleInputChange('lineId', e.target.value)}
-            placeholder="請輸入 LINE ID（用於接收預約通知）"
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
-          />
-        </div>
+      {/* 第四步：確認預約按鈕 */}
+      <button
+        onClick={handleCreateReservation}
+        disabled={!isFormComplete || isCreatingReservation}
+        className="w-full bg-cyan-500 text-white py-4 px-6 rounded-lg font-medium hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
+      >
+        {isCreatingReservation ? (
+          <>
+            <Loader2 className="w-5 h-5 animate-spin" />
+            建立預約中...
+          </>
+        ) : (
+          <>
+            <CheckCircle className="w-5 h-5" />
+            確認預約
+          </>
+        )}
+      </button>
 
-        <button
-          type="submit"
-          disabled={!isFormComplete || isSubmitting}
-          className="w-full bg-cyan-500 text-white py-4 px-6 rounded-lg font-medium hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
-        >
-          {isSubmitting ? (
-            <>
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              處理中...
-            </>
-          ) : (
-            <>
-              <CheckCircle className="w-5 h-5" />
-              確認預約
-            </>
-          )}
-        </button>
-      </form>
+      {!isFormComplete && (
+        <p className="text-sm text-gray-500 text-center mt-2">
+          請完成所有步驟後才能建立預約
+        </p>
+      )}
     </div>
   );
 };

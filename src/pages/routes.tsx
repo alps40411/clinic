@@ -3,7 +3,7 @@ import AppointmentBooking from './AppointmentBooking';
 import AppointmentLookup from './AppointmentLookup';
 import ConsultationPage from './ConsultationPage';
 import PatientProfile from './PatientProfile';
-import ClinicInfo from './ClinicInfo';
+import ClinicInfoDisplay from './ClinicInfo';
 import ClinicProgress from './ClinicProgress';
 
 export const routes = pages.map(page => ({
@@ -11,7 +11,7 @@ export const routes = pages.map(page => ({
   element: (() => {
     switch (page.id) {
       case 'clinic':
-        return <ClinicInfo />;
+        return <ClinicInfoDisplay />;
       case 'appointment':
         return <AppointmentBooking />;
       case 'lookup':

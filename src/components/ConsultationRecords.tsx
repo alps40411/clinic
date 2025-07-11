@@ -11,51 +11,66 @@ interface ConsultationRecordsProps {
 
 const ConsultationRecords: React.FC<ConsultationRecordsProps> = ({ onBackToForm, onEditRecord }) => {
   const { consultations, getConsultationsByLine, deleteConsultation, loading, error, clearError } = useConsultations();
-  const [searchPhone, setSearchPhone] = useState('');
   const [records, setRecords] = useState<ConsultationRecord[]>([]);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [localError, setLocalError] = useState('');
   const [selectedRecord, setSelectedRecord] = useState<ConsultationRecord | null>(null);
 
   // 計算要顯示的記錄：優先 API 資料，否則顯示模擬資料
   const displayRecords = React.useMemo(() => {
     if (consultations.length > 0) {
-      return consultations.map((consultation) => ({
-        id: consultation.id,
-        recordNumber: `CONS-${consultation.id}`,
-        birthDate: '', 
-        phone: '', 
-        email: '', 
-        clinicLocation: 'API諮詢',
-        consultationTopic: consultation.consultationDetails.consultationTopic || consultation.consultationDetails.type || '',
-        availableTime: '', 
-        howDidYouKnow: '', 
-        preferredConsultant: '', 
-        notes: consultation.consultationDetails.notes || '',
-        status: (consultation.consultationDetails.status || 'pending') as 'pending' | 'contacted' | 'completed' | 'cancelled',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      } as ConsultationRecord));
+      return consultations.map((consultation) => {
+        console.log('處理諮詢資料:', consultation);
+        
+        // 安全地獲取 consultationDetails
+        const details = consultation.consultationDetails || {};
+        
+        return {
+          id: consultation.id,
+          recordNumber: `CONS-${consultation.id}`,
+          birthDate: '', 
+          phone: '', 
+          email: '', 
+          clinicLocation: 'API諮詢',
+          consultationTopic: details.consultationTopic || details.type || '未指定',
+          availableTime: '', 
+          howDidYouKnow: '', 
+          preferredConsultant: '', 
+          notes: details.notes || '',
+          status: (details.status || 'pending') as 'pending' | 'contacted' | 'completed' | 'cancelled',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        } as ConsultationRecord;
+      });
     }
     return records;
   }, [consultations, records]);
 
   // 自動載入當前用戶的諮詢記錄
   const loadConsultations = useCallback(async () => {
+    console.log('開始載入諮詢記錄...');
+    clearError();
+    setLocalError('');
+    
     try {
-      console.log('開始載入諮詢記錄...');
-      clearError();
-      setLocalError('');
-      
       const result = await getConsultationsByLine({ page: 1, limit: 20 });
       console.log('API 回應:', result);
       
-      setHasSearched(true);
+      // 檢查是否有數據
+      if (result && result.data && result.data.length > 0) {
+        console.log('成功載入', result.data.length, '筆諮詢記錄');
+      } else {
+        console.log('API 返回空數據，顯示模擬資料');
+        setRecords(mockConsultationRecords.slice(0, 3));
+        setLocalError('目前沒有諮詢記錄，顯示範例資料');
+      }
+      
+      setHasLoaded(true);
     } catch (err) {
       console.error('載入諮詢記錄失敗:', err);
       // API 失敗時，顯示模擬數據以免頁面空白
-      setRecords(mockConsultationRecords.slice(0, 3)); // 顯示前3筆模擬資料
-      setHasSearched(true);
+      setRecords(mockConsultationRecords.slice(0, 3));
+      setHasLoaded(true);
       setLocalError('無法連接到伺服器，顯示範例資料');
     }
   }, [getConsultationsByLine, clearError]);
@@ -63,27 +78,6 @@ const ConsultationRecords: React.FC<ConsultationRecordsProps> = ({ onBackToForm,
   useEffect(() => {
     loadConsultations();
   }, [loadConsultations]);
-
-  const handleSearch = async () => {
-    if (!searchPhone.trim()) {
-      setLocalError('請輸入電話號碼');
-      return;
-    }
-
-    if (!/^09\d{8}$/.test(searchPhone)) {
-      setLocalError('電話號碼格式不正確');
-      return;
-    }
-
-    setLocalError('');
-    
-    // 模擬根據電話號碼搜尋（實際上會使用 API 諮詢記錄）
-    const userRecords = mockConsultationRecords.filter(
-      record => record.phone === searchPhone
-    );
-    setRecords(userRecords);
-    setHasSearched(true);
-  };
 
   const handleDelete = async (recordId: string) => {
     if (window.confirm('確定要刪除此諮詢紀錄嗎？')) {
@@ -254,63 +248,29 @@ const ConsultationRecords: React.FC<ConsultationRecordsProps> = ({ onBackToForm,
           <div className="w-16"></div>
         </div>
 
-        {/* Search Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <Search className="w-5 h-5 text-cyan-500" />
-            查詢諮詢紀錄
-          </h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="searchPhone" className="block text-sm font-medium text-gray-700 mb-2">
-                電話號碼 <span className="text-red-500">*</span>
-              </label>
-              <div className="flex gap-3">
-                <input
-                  type="tel"
-                  id="searchPhone"
-                  value={searchPhone}
-                  onChange={(e) => {
-                    setSearchPhone(e.target.value);
-                    setLocalError('');
-                  }}
-                  placeholder="請輸入手機號碼"
-                  className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
-                />
-                <button
-                  onClick={handleSearch}
-                  disabled={loading || !searchPhone}
-                  className="px-6 py-3 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2 font-medium"
-                >
-                  {loading ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Search className="w-4 h-4" />
-                  )}
-                  查詢
-                </button>
-              </div>
-              {(error || localError) && (
-                <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                  <AlertCircle className="w-4 h-4" />
-                  {error || localError}
-                </p>
-              )}
+        {/* 顯示錯誤或警告信息 */}
+        {(error || localError) && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-yellow-600" />
+              <p className="text-yellow-800 text-sm">{error || localError}</p>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* 載入狀態 */}
+        {loading && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+            <div className="flex items-center justify-center py-8">
+              <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mr-3"></div>
+              <p className="text-gray-600">載入諮詢記錄中...</p>
+            </div>
+          </div>
+        )}
 
         {/* Results */}
-        {hasSearched && (
+        {hasLoaded && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            {/* 顯示錯誤或警告信息 */}
-            {localError && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                <p className="text-yellow-800 text-sm">{localError}</p>
-              </div>
-            )}
-            
             {/* 顯示記錄內容 */}
             {displayRecords.length === 0 ? (
               <div className="text-center py-8 text-gray-500">

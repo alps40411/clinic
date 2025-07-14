@@ -205,9 +205,9 @@ class ApiService {
     return this.request<ApiDoctor>(API_CONFIG.ENDPOINTS.DOCTOR_BY_ID(id), activeLineUserId);
   }
 
-  async getPatients(lineUserId?: string): Promise<ApiResponse<ApiPatient[]>> {
+  async getPatients(lineUserId?: string): Promise<ApiResponse<ApiPatientsResponse>> {
     const activeLineUserId = lineUserId || getLineUserId();
-    return this.request<ApiPatient[]>(API_CONFIG.ENDPOINTS.PATIENTS, activeLineUserId);
+    return this.request<ApiPatientsResponse>(API_CONFIG.ENDPOINTS.PATIENTS, activeLineUserId);
   }
 
   async getSchedules(params: ScheduleParams = {}, lineUserId?: string): Promise<ApiResponse<ApiSchedulesResponse>> {

@@ -40,18 +40,52 @@ export interface ConsultationDetails {
 
 // 建立諮詢的請求資料
 export interface CreateConsultationDto {
-  consultationDetails: ConsultationDetails;
+  lineId: string;
+  name: string;
+  birthDate: Date;
+  phone: string;
+  email: string;
+  location: string;
+  consultationType: string;
+  contactTimeSlot: string;
+  referralSource: string;
+  // 可選欄位
+  notes?: string;
+  preferredConsultant?: string;
 }
 
 // 更新諮詢的請求資料
 export interface UpdateConsultationDto {
-  consultationDetails: Partial<ConsultationDetails>;
+  lineId?: string;
+  name?: string;
+  birthDate?: Date;
+  phone?: string;
+  email?: string;
+  location?: string;
+  consultationType?: string;
+  contactTimeSlot?: string;
+  referralSource?: string;
+  notes?: string;
+  preferredConsultant?: string;
 }
 
 // 諮詢回應資料
 export interface ConsultationResponseDto {
   id: string;
-  consultationDetails: ConsultationDetails;
+  lineId: string;
+  name: string;
+  birthDate: string; // API 回應通常是字串格式
+  phone: string;
+  email: string;
+  location: string;
+  consultationType: string;
+  contactTimeSlot: string;
+  referralSource: string;
+  notes?: string;
+  preferredConsultant?: string;
+  status?: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // 分頁諮詢回應資料

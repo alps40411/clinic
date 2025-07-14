@@ -46,16 +46,35 @@ export const usePatients = (lineUserId?: string): UsePatientsReturn => {
     try {
       const response = await apiService.getPatients(getActiveLineUserId());
       
+      console.log('getPatients API 完整回應:', response);
+      console.log('response.data 類型:', typeof response.data);
+      console.log('response.data 內容:', response.data);
+      
       if (response.success && response.data) {
         try {
           // 轉換 API 資料為所需格式
-          const apiPatients = convertApiToPatientProfileArray(response.data);
-          console.log('API 返回的患者資料:', apiPatients);
+          // response.data 現在是 ApiPatientsResponse 格式 {data: ApiPatient[], meta: {...}}
           
-          // 直接使用 API 資料，不再使用本地資料
-          setPatients(apiPatients);
+          // 檢查 response.data 是否有 data 屬性（分頁格式）
+          if (response.data.data && Array.isArray(response.data.data)) {
+            console.log('檢測到分頁格式，使用 response.data.data');
+            const apiPatients = convertApiToPatientProfileArray(response.data.data);
+            console.log('轉換後的患者資料:', apiPatients);
+            setPatients(apiPatients);
+          } else if (Array.isArray(response.data)) {
+            // 如果 response.data 直接是陣列（舊格式）
+            console.log('檢測到陣列格式，直接使用 response.data');
+            const apiPatients = convertApiToPatientProfileArray(response.data);
+            console.log('轉換後的患者資料:', apiPatients);
+            setPatients(apiPatients);
+          } else {
+            console.error('無法識別的 API 回應格式:', response.data);
+            setError('API 回應格式不正確');
+            setPatients([]);
+          }
         } catch (conversionError) {
           console.error('患者資料轉換錯誤:', conversionError);
+          console.error('問題資料:', response.data);
           setError(`資料轉換失敗: ${conversionError instanceof Error ? conversionError.message : '未知錯誤'}`);
           setPatients([]);
         }

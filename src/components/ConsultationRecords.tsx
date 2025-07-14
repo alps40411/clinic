@@ -22,24 +22,22 @@ const ConsultationRecords: React.FC<ConsultationRecordsProps> = ({ onBackToForm,
       return consultations.map((consultation) => {
         console.log('處理諮詢資料:', consultation);
         
-        // 安全地獲取 consultationDetails
-        const details = consultation.consultationDetails || {};
-        
+        // 現在 consultation 是平面結構
         return {
           id: consultation.id,
           recordNumber: `CONS-${consultation.id}`,
-          birthDate: '', 
-          phone: '', 
-          email: '', 
-          clinicLocation: 'API諮詢',
-          consultationTopic: details.consultationTopic || details.type || '未指定',
-          availableTime: '', 
-          howDidYouKnow: '', 
-          preferredConsultant: '', 
-          notes: details.notes || '',
-          status: (details.status || 'pending') as 'pending' | 'contacted' | 'completed' | 'cancelled',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          birthDate: consultation.birthDate || '', 
+          phone: consultation.phone || '', 
+          email: consultation.email || '', 
+          clinicLocation: consultation.location || 'API諮詢',
+          consultationTopic: consultation.consultationType || '未指定',
+          availableTime: consultation.contactTimeSlot || '', 
+          howDidYouKnow: consultation.referralSource || '', 
+          preferredConsultant: consultation.preferredConsultant || '', 
+          notes: consultation.notes || '',
+          status: (consultation.status || 'pending') as 'pending' | 'contacted' | 'completed' | 'cancelled',
+          createdAt: consultation.createdAt || new Date().toISOString(),
+          updatedAt: consultation.updatedAt || new Date().toISOString()
         } as ConsultationRecord;
       });
     }

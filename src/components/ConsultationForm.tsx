@@ -9,6 +9,7 @@ import {
   consultants 
 } from '../data/consultationData';
 import { useConsultations } from '../hooks/useConsultations';
+import { getLineUserId } from '../config/api';
 
 interface DropdownProps {
   label: string;
@@ -124,6 +125,30 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
       newErrors.birthDate = '請輸入出生日期';
     } else if (!/^\d{8}$/.test(formData.birthDate)) {
       newErrors.birthDate = '請輸入8位數字的出生日期';
+    } else {
+      // 驗證日期是否有效
+      try {
+        const year = parseInt(formData.birthDate.substring(0, 4));
+        const month = parseInt(formData.birthDate.substring(4, 6));
+        const day = parseInt(formData.birthDate.substring(6, 8));
+        
+        // 基本範圍檢查
+        if (year < 1900 || year > new Date().getFullYear()) {
+          newErrors.birthDate = '年份必須在1900年到今年之間';
+        } else if (month < 1 || month > 12) {
+          newErrors.birthDate = '月份必須在01到12之間';
+        } else if (day < 1 || day > 31) {
+          newErrors.birthDate = '日期必須在01到31之間';
+        } else {
+          // 檢查日期是否真實存在
+          const date = new Date(year, month - 1, day);
+          if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+            newErrors.birthDate = '請輸入有效的日期';
+          }
+        }
+      } catch (error) {
+        newErrors.birthDate = '日期格式不正確';
+      }
     }
 
     if (!formData.phone.trim()) {
@@ -174,25 +199,71 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
       // 清除之前的錯誤
       clearError();
 
-      // 將表單資料轉換為 API 格式
-      const consultationData = {
-        consultationDetails: {
-          type: formData.consultationTopic,
-          status: 'pending' as const,
-          notes: formData.notes || undefined,
-          // 可以根據需要添加其他欄位
+      // 獲取 LINE user ID
+      const lineId = getLineUserId();
+
+      // 將8位數字出生日期轉換為正確的 Date 物件
+      const formatBirthDate = (birthDateString: string): Date => {
+        if (!birthDateString || birthDateString.length !== 8) {
+          throw new Error('出生日期格式不正確，請輸入8位數字');
         }
+        
+        const year = birthDateString.substring(0, 4);
+        const month = birthDateString.substring(4, 6);
+        const day = birthDateString.substring(6, 8);
+        
+        // 建立 Date 物件 (月份需要減1，因為 Date 的月份是從0開始)
+        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        
+        // 檢查日期是否有效
+        if (isNaN(date.getTime())) {
+          throw new Error('無效的出生日期');
+        }
+        
+        console.log(`轉換出生日期: ${birthDateString} -> ${date.toISOString()}`);
+        return date;
       };
+
+      // 將表單資料轉換為 API 格式（平面結構，不使用 consultationDetails）
+      const consultationData = {
+        lineId: lineId,
+        name: `諮詢者-${Date.now()}`, // 如果沒有姓名欄位，使用預設值
+        birthDate: formatBirthDate(formData.birthDate), // 正確轉換為 Date 物件
+        phone: formData.phone,
+        email: formData.email,
+        location: formData.clinicLocation, // 對應到 location 欄位
+        consultationType: formData.consultationTopic, // 對應到 consultationType 欄位
+        contactTimeSlot: formData.availableTime, // 對應到 contactTimeSlot 欄位
+        referralSource: formData.howDidYouKnow, // 對應到 referralSource 欄位
+        // 可選欄位
+        notes: formData.notes || undefined,
+        preferredConsultant: formData.preferredConsultant || undefined,
+      };
+
+      console.log('準備提交的諮詢資料:', consultationData);
 
       if (editingRecord) {
         // 更新現有諮詢
-        await updateConsultation(editingRecord.id, consultationData);
+        const updateData = {
+          lineId: lineId,
+          name: `諮詢者-${Date.now()}`,
+          birthDate: formatBirthDate(formData.birthDate),
+          phone: formData.phone,
+          email: formData.email,
+          location: formData.clinicLocation,
+          consultationType: formData.consultationTopic,
+          contactTimeSlot: formData.availableTime,
+          referralSource: formData.howDidYouKnow,
+          notes: formData.notes || undefined,
+          preferredConsultant: formData.preferredConsultant || undefined,
+        };
+        await updateConsultation(editingRecord.id, updateData);
       } else {
         // 建立新諮詢
         await createConsultation(consultationData);
       }
 
-      console.log('Consultation form submitted:', formData);
+      console.log('Consultation form submitted successfully');
       setIsSubmitted(true);
       
       // Clear editing state if applicable

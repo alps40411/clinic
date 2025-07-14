@@ -7,7 +7,7 @@ import {
   convertApiToPatientProfileArray 
 } from '../utils/patientUtils';
 import { mockPatientProfiles } from '../data/patientData';
-import { LINE_USER_ID } from '../config/api';
+import { getLineUserId } from '../config/api';
 
 interface UsePatientsReturn {
   patients: PatientProfile[];
@@ -21,22 +21,35 @@ interface UsePatientsReturn {
   refetch: () => Promise<void>;
 }
 
-export const usePatients = (lineUserId: string = LINE_USER_ID): UsePatientsReturn => {
+export const usePatients = (lineUserId?: string): UsePatientsReturn => {
   const [patients, setPatients] = useState<PatientProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // 獲取實際的LINE user ID
+  const getActiveLineUserId = (): string => {
+    if (lineUserId) {
+      return lineUserId;
+    }
+    try {
+      return getLineUserId();
+    } catch (error) {
+      console.warn('Failed to get LINE user ID, this might cause API calls to fail');
+      throw error;
+    }
+  };
 
   const fetchPatients = async () => {
     setLoading(true);
     setError(null);
     
     try {
-      const response = await apiService.getPatients(lineUserId);
+      const response = await apiService.getPatients(getActiveLineUserId());
       
       if (response.success && response.data) {
         try {
           // 轉換 API 資料為所需格式
-          const apiPatients = convertApiToPatientProfileArray(response.data.data);
+          const apiPatients = convertApiToPatientProfileArray(response.data);
           console.log('API 返回的患者資料:', apiPatients);
           
           // 直接使用 API 資料，不再使用本地資料
@@ -67,8 +80,8 @@ export const usePatients = (lineUserId: string = LINE_USER_ID): UsePatientsRetur
     setError(null);
     
     try {
-      const apiData = convertPatientFormToApiCreate(formData, lineUserId);
-      const response = await apiService.createPatient(apiData, lineUserId);
+      const apiData = convertPatientFormToApiCreate(formData, getActiveLineUserId());
+      const response = await apiService.createPatient(apiData, getActiveLineUserId());
       
       if (response.success && response.data) {
         const newPatient = convertApiToPatientProfile(response.data);
@@ -92,8 +105,8 @@ export const usePatients = (lineUserId: string = LINE_USER_ID): UsePatientsRetur
     setError(null);
     
     try {
-      const apiData = convertPatientFormToApiCreate(formData, lineUserId);
-      const response = await apiService.updatePatient(id, apiData, lineUserId);
+      const apiData = convertPatientFormToApiCreate(formData, getActiveLineUserId());
+      const response = await apiService.updatePatient(id, apiData, getActiveLineUserId());
       
       if (response.success && response.data) {
         const updatedPatient = convertApiToPatientProfile(response.data);
@@ -117,7 +130,7 @@ export const usePatients = (lineUserId: string = LINE_USER_ID): UsePatientsRetur
     setError(null);
     
     try {
-      const response = await apiService.deletePatient(id, lineUserId);
+      const response = await apiService.deletePatient(id, getActiveLineUserId());
       
       if (response.success) {
         setPatients(prev => prev.filter(p => p.id !== id));
@@ -140,7 +153,7 @@ export const usePatients = (lineUserId: string = LINE_USER_ID): UsePatientsRetur
     setError(null);
     
     try {
-      const response = await apiService.getPatientById(id, lineUserId);
+      const response = await apiService.getPatientById(id, getActiveLineUserId());
       
       if (response.success && response.data) {
         return convertApiToPatientProfile(response.data);
@@ -165,7 +178,7 @@ export const usePatients = (lineUserId: string = LINE_USER_ID): UsePatientsRetur
     setError(null);
     
     try {
-      const response = await apiService.searchPatientByIdNumber(idNumber, lineUserId);
+      const response = await apiService.searchPatientByIdNumber(idNumber, getActiveLineUserId());
       
       if (response.success && response.data) {
         return convertApiToPatientProfile(response.data);

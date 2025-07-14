@@ -1,3 +1,5 @@
+import liffService from '../services/liffService';
+
 // 根據環境選擇不同的 API 基礎 URL
 const getBaseUrl = () => {
   // 開發環境使用代理路徑，生產環境使用直接 URL
@@ -7,8 +9,46 @@ const getBaseUrl = () => {
   return 'http://tw1.openvpns.org:30001'; // 生產環境直接訪問
 };
 
-// LINE User ID (可從環境變數或其他地方獲取)
-export const LINE_USER_ID = 'U66bfb7dabdef424cd78c29bd352fc4cb';
+// 動態獲取 LINE User ID 的函數
+export const getLineUserId = (): string => {
+  const userId = liffService.getUserId();
+  if (!userId) {
+    console.warn('LINE User ID not available, please ensure LIFF is properly initialized');
+    throw new Error('LINE User ID not available');
+  }
+  return userId;
+};
+
+// 每個分頁對應的LIFF ID配置
+export const LIFF_IDS = {
+  '/profile': '2007708469-eLWvyxRp',
+  '/clinic': '2007708469-By8prg6X',
+  '/consultation': '2007708469-R8G1qd2W',
+  '/progress': '2007708469-nylK60O4',
+  '/lookup': '2007708469-BENy2nkL',
+  '/appointment': '2007708469-KvonrYMx'
+} as const;
+
+// 根據當前路由獲取對應的LIFF ID
+export const getLiffIdForCurrentRoute = (): string => {
+  const pathname = window.location.pathname;
+  const liffId = LIFF_IDS[pathname as keyof typeof LIFF_IDS];
+  
+  if (!liffId) {
+    console.warn(`No LIFF ID configured for route: ${pathname}, using default`);
+    // 如果沒有對應的LIFF ID，使用預約頁面的LIFF ID作為預設
+    return LIFF_IDS['/appointment'];
+  }
+  
+  return liffId;
+};
+
+// LIFF 配置
+export const LIFF_CONFIG = {
+  liffId: getLiffIdForCurrentRoute(),
+  mock: import.meta.env.DEV && import.meta.env.VITE_LIFF_MOCK === 'true',
+  mockUserId: import.meta.env.VITE_MOCK_USER_ID,
+};
 
 export const API_CONFIG = {
   BASE_URL: getBaseUrl(),
@@ -27,11 +67,14 @@ export const API_CONFIG = {
     CONSULTATIONS_BY_LINE: '/consultations/line',
     CONSULTATION_BY_ID: (id: string) => `/consultations/${id}`,
   },
-  getHeaders: (lineUserId: string = LINE_USER_ID, authToken?: string) => {
+  getHeaders: (lineUserId: string, authToken?: string) => {
+    // 使用傳入的 lineUserId，如果沒有就動態獲取
+    const userId = lineUserId || getLineUserId();
+    
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'accept': 'application/json',
-      'x-line-id': lineUserId,
+      'x-line-id': userId,
     };
     
     // 如果提供了 JWT token，添加 Authorization 標頭

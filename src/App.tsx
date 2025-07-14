@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Calendar, MessageSquare, Users, Stethoscope, Clock, Menu, X, Search } from 'lucide-react';
+import { Calendar, MessageSquare, Users, Stethoscope, Clock, Menu, X, Search, TestTube } from 'lucide-react';
 import AppointmentBooking from './pages/AppointmentBooking';
 import AppointmentLookup from './pages/AppointmentLookup';
 import ConsultationPage from './pages/ConsultationPage';
 import PatientProfileManager from './components/PatientProfileManager';
 import ClinicInfoDisplay from './components/ClinicInfoDisplay';
 import ClinicProgress from './components/ClinicProgress';
+import LiffTestPage from './pages/LiffTestPage';
+import LiffInitializer from './components/LiffInitializer';
 
 const pages = [
   {
     id: 'clinic',
-    path: '/',
+    path: '/clinic',
     name: '診所資訊',
     icon: Stethoscope,
     description: '醫師團隊與診所介紹',
@@ -58,6 +60,18 @@ const pages = [
     component: PatientProfileManager
   }
 ];
+
+// 開發環境添加測試頁面
+if (import.meta.env.DEV) {
+  pages.push({
+    id: 'liff-test',
+    path: '/liff-test',
+    name: 'LIFF 測試',
+    icon: TestTube,
+    description: 'LIFF 整合狀態檢測',
+    component: LiffTestPage
+  });
+}
 
 function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -150,22 +164,24 @@ function Navigation() {
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-blue-50">
-        <Navigation />
-        
-        {/* Main Content */}
-        <main className="pb-20">
-          <Routes>
-            {pages.map((page) => (
-              <Route
-                key={page.id}
-                path={page.path}
-                element={<page.component />}
-              />
-            ))}
-          </Routes>
-        </main>
-      </div>
+      <LiffInitializer>
+        <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-blue-50">
+          <Navigation />
+          
+          {/* Main Content */}
+          <main className="pb-20">
+            <Routes>
+              {pages.map((page) => (
+                <Route
+                  key={page.id}
+                  path={page.path}
+                  element={<page.component />}
+                />
+              ))}
+            </Routes>
+          </main>
+        </div>
+      </LiffInitializer>
     </Router>
   );
 }

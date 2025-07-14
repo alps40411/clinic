@@ -5,7 +5,7 @@ import { apiService, ApiDoctorsResponse } from '../services/apiService';
 import { convertApiToDoctorInfoArray, convertApiToDoctorArray } from '../utils/doctorUtils';
 import { doctorsInfo } from '../data/doctorData';
 import { doctors as mockDoctors } from '../data/mockData';
-import { LINE_USER_ID } from '../config/api';
+import { getLineUserId } from '../config/api';
 
 interface UseDoctorsReturn {
   doctorsInfo: DoctorInfo[];
@@ -15,24 +15,48 @@ interface UseDoctorsReturn {
   refetch: () => Promise<void>;
 }
 
-export const useDoctors = (lineUserId: string = LINE_USER_ID): UseDoctorsReturn => {
+export const useDoctors = (lineUserId?: string): UseDoctorsReturn => {
   const [doctorsInfoState, setDoctorsInfoState] = useState<DoctorInfo[]>(doctorsInfo);
   const [doctorsState, setDoctorsState] = useState<Doctor[]>(mockDoctors);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // 獲取實際的LINE user ID
+  const getActiveLineUserId = (): string => {
+    if (lineUserId) {
+      return lineUserId;
+    }
+    try {
+      return getLineUserId();
+    } catch (error) {
+      console.warn('Failed to get LINE user ID, this might cause API calls to fail');
+      throw error;
+    }
+  };
 
   const fetchDoctors = async () => {
     setLoading(true);
     setError(null);
     
     try {
-      const response = await apiService.getDoctors(lineUserId);
+      const response = await apiService.getDoctors(getActiveLineUserId());
       
       if (response.success && response.data) {
         try {
           // 轉換 API 資料為所需格式
-          const apiDoctorsInfo = convertApiToDoctorInfoArray(response.data);
-          const apiDoctors = convertApiToDoctorArray(response.data);
+          // 由於 API 直接返回 ApiDoctor[]，需要包裝為 ApiDoctorsResponse 格式
+          const wrappedResponse: ApiDoctorsResponse = {
+            data: response.data,
+            meta: {
+              total: response.data.length,
+              page: 1,
+              limit: response.data.length,
+              totalPages: 1
+            }
+          };
+          
+          const apiDoctorsInfo = convertApiToDoctorInfoArray(wrappedResponse);
+          const apiDoctors = convertApiToDoctorArray(wrappedResponse);
           
           // 如果轉換後有資料，使用 API 資料；否則使用本地資料
           if (apiDoctorsInfo.length > 0) {

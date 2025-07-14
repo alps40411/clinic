@@ -1,4 +1,4 @@
-import { API_CONFIG, LINE_USER_ID } from '../config/api';
+import { API_CONFIG, getLineUserId } from '../config/api';
 import { 
   CreateConsultationDto, 
   UpdateConsultationDto, 
@@ -165,11 +165,14 @@ export interface UpdateAppointmentData {
 
 
 class ApiService {
-  private async request<T>(endpoint: string, lineUserId: string = LINE_USER_ID): Promise<ApiResponse<T>> {
+  private async request<T>(endpoint: string, lineUserId?: string): Promise<ApiResponse<T>> {
     try {
+      // 獲取實際的LINE user ID
+      const activeLineUserId = lineUserId || getLineUserId();
+      
       const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, {
         method: 'GET',
-        headers: API_CONFIG.getHeaders(lineUserId),
+        headers: API_CONFIG.getHeaders(activeLineUserId),
       });
 
       if (!response.ok) {
@@ -192,19 +195,23 @@ class ApiService {
     }
   }
 
-  async getDoctors(lineUserId?: string): Promise<ApiResponse<ApiDoctorsResponse>> {
-    return this.request<ApiDoctorsResponse>(API_CONFIG.ENDPOINTS.DOCTORS, lineUserId);
+  async getDoctors(lineUserId?: string): Promise<ApiResponse<ApiDoctor[]>> {
+    const activeLineUserId = lineUserId || getLineUserId();
+    return this.request<ApiDoctor[]>(API_CONFIG.ENDPOINTS.DOCTORS, activeLineUserId);
   }
 
   async getDoctorById(id: string, lineUserId?: string): Promise<ApiResponse<ApiDoctor>> {
-    return this.request<ApiDoctor>(API_CONFIG.ENDPOINTS.DOCTOR_BY_ID(id), lineUserId);
+    const activeLineUserId = lineUserId || getLineUserId();
+    return this.request<ApiDoctor>(API_CONFIG.ENDPOINTS.DOCTOR_BY_ID(id), activeLineUserId);
   }
 
-  async getPatients(lineUserId?: string): Promise<ApiResponse<ApiPatientsResponse>> {
-    return this.request<ApiPatientsResponse>(API_CONFIG.ENDPOINTS.PATIENTS_BY_LINE, lineUserId);
+  async getPatients(lineUserId?: string): Promise<ApiResponse<ApiPatient[]>> {
+    const activeLineUserId = lineUserId || getLineUserId();
+    return this.request<ApiPatient[]>(API_CONFIG.ENDPOINTS.PATIENTS, activeLineUserId);
   }
 
   async getSchedules(params: ScheduleParams = {}, lineUserId?: string): Promise<ApiResponse<ApiSchedulesResponse>> {
+    const activeLineUserId = lineUserId || getLineUserId();
     const queryParams = new URLSearchParams();
     
     if (params.page) queryParams.append('page', params.page.toString());
@@ -215,21 +222,22 @@ class ApiService {
     
     const endpoint = `${API_CONFIG.ENDPOINTS.SCHEDULES}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
     console.log('getSchedules API 調用:', endpoint, params);
-    return this.request<ApiSchedulesResponse>(endpoint, lineUserId);
+    return this.request<ApiSchedulesResponse>(endpoint, activeLineUserId);
   }
 
   // Patient API methods
   async createPatient(patientData: PatientCreateData, lineUserId?: string): Promise<ApiResponse<ApiPatient>> {
+    const activeLineUserId = lineUserId || getLineUserId();
     try {
       console.log('創建患者請求資料:', {
         url: `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PATIENTS}`,
-        headers: API_CONFIG.getHeaders(lineUserId),
+        headers: API_CONFIG.getHeaders(activeLineUserId),
         body: patientData
       });
 
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PATIENTS}`, {
         method: 'POST',
-        headers: API_CONFIG.getHeaders(lineUserId),
+        headers: API_CONFIG.getHeaders(activeLineUserId),
         body: JSON.stringify(patientData),
       });
 
@@ -259,15 +267,16 @@ class ApiService {
   }
 
   async getPatientById(id: string, lineUserId?: string): Promise<ApiResponse<ApiPatient>> {
+    const activeLineUserId = lineUserId || getLineUserId();
     try {
       console.log('取得患者資料請求:', {
         url: `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PATIENT_BY_ID(id)}`,
-        headers: API_CONFIG.getHeaders(lineUserId)
+        headers: API_CONFIG.getHeaders(activeLineUserId)
       });
 
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PATIENT_BY_ID(id)}`, {
         method: 'GET',
-        headers: API_CONFIG.getHeaders(lineUserId),
+        headers: API_CONFIG.getHeaders(activeLineUserId),
       });
 
       console.log('取得患者資料 API 回應狀態:', response.status);
@@ -296,18 +305,19 @@ class ApiService {
   }
 
   async updatePatient(id: string, patientData: PatientCreateData, lineUserId?: string): Promise<ApiResponse<ApiPatient>> {
+    const activeLineUserId = lineUserId || getLineUserId();
     try {
       console.log('更新患者請求資料:', {
         url: `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PATIENT_BY_ID(id)}`,
         method: 'PATCH',
-        headers: API_CONFIG.getHeaders(lineUserId),
+        headers: API_CONFIG.getHeaders(activeLineUserId),
         body: patientData
       });
 
       // 嘗試使用 PATCH 方法
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PATIENT_BY_ID(id)}`, {
         method: 'PATCH',
-        headers: API_CONFIG.getHeaders(lineUserId),
+        headers: API_CONFIG.getHeaders(activeLineUserId),
         body: JSON.stringify(patientData),
       });
 
@@ -322,7 +332,7 @@ class ApiService {
           console.log('嘗試使用 PUT 方法...');
           const putResponse = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PATIENT_BY_ID(id)}`, {
             method: 'PUT',
-            headers: API_CONFIG.getHeaders(lineUserId),
+            headers: API_CONFIG.getHeaders(activeLineUserId),
             body: JSON.stringify(patientData),
           });
 
@@ -361,15 +371,16 @@ class ApiService {
   }
 
   async deletePatient(id: string, lineUserId?: string): Promise<ApiResponse<void>> {
+    const activeLineUserId = lineUserId || getLineUserId();
     try {
       console.log('刪除患者請求:', {
         url: `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PATIENT_BY_ID(id)}`,
-        headers: API_CONFIG.getHeaders(lineUserId)
+        headers: API_CONFIG.getHeaders(activeLineUserId)
       });
 
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PATIENT_BY_ID(id)}`, {
         method: 'DELETE',
-        headers: API_CONFIG.getHeaders(lineUserId),
+        headers: API_CONFIG.getHeaders(activeLineUserId),
       });
 
       console.log('刪除患者 API 回應狀態:', response.status);
@@ -396,70 +407,24 @@ class ApiService {
   }
 
   async searchPatientByIdNumber(idNumber: string, lineUserId?: string): Promise<ApiResponse<ApiPatient>> {
-    try {
-      const queryParams = new URLSearchParams();
-      queryParams.append('idNumber', idNumber);
-      
-      const endpoint = `${API_CONFIG.ENDPOINTS.PATIENTS_BY_LINE}?${queryParams.toString()}`;
-      
-      console.log('根據身分證字號搜尋患者請求:', {
-        url: `${API_CONFIG.BASE_URL}${endpoint}`,
-        headers: API_CONFIG.getHeaders(lineUserId)
-      });
-
-      const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, {
-        method: 'GET',
-        headers: API_CONFIG.getHeaders(lineUserId),
-      });
-
-      console.log('搜尋患者 API 回應狀態:', response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('搜尋患者 API 錯誤回應:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log('搜尋患者 API 回應資料:', data);
-      
-      // 假設 API 返回患者陣列，我們取第一個匹配的
-      if (data.data && data.data.length > 0) {
-        console.log('找到患者資料:', data.data[0]);
-        return {
-          success: true,
-          data: data.data[0],
-        };
-      } else {
-        console.log('未找到匹配的患者資料');
-        return {
-          success: false,
-          data: null as unknown as ApiPatient,
-          message: '找不到該身分證字號的患者資料',
-        };
-      }
-    } catch (error) {
-      console.error(`API request failed for searchPatientByIdNumber ${idNumber}:`, error);
-      return {
-        success: false,
-        data: null as unknown as ApiPatient,
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-      };
-    }
+    const activeLineUserId = lineUserId || getLineUserId();
+    const endpoint = `${API_CONFIG.ENDPOINTS.PATIENTS_BY_LINE}?idNumber=${encodeURIComponent(idNumber)}`;
+    return this.request<ApiPatient>(endpoint, activeLineUserId);
   }
 
   // 第四步：建立預約掛號 API
   async createAppointment(appointmentData: { scheduleId: number; patientId: number; doctorId: number; clinicId: number }, lineUserId?: string): Promise<ApiResponse<any>> {
     try {
+      const activeLineUserId = lineUserId || getLineUserId();
       console.log('建立預約請求資料:', {
         url: `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.APPOINTMENTS}`,
-        headers: API_CONFIG.getHeaders(lineUserId),
+        headers: API_CONFIG.getHeaders(activeLineUserId),
         body: appointmentData
       });
 
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.APPOINTMENTS}`, {
         method: 'POST',
-        headers: API_CONFIG.getHeaders(lineUserId),
+        headers: API_CONFIG.getHeaders(activeLineUserId),
         body: JSON.stringify(appointmentData),
       });
 
@@ -493,6 +458,7 @@ class ApiService {
   // 第一步：依身分證字號查詢預約紀錄
   async searchAppointmentsByIdNumber(params: SearchAppointmentParams, lineUserId?: string): Promise<ApiResponse<ApiAppointmentsResponse>> {
     try {
+      const activeLineUserId = lineUserId || getLineUserId();
       const queryParams = new URLSearchParams();
       if (params.page) queryParams.append('page', params.page.toString());
       if (params.limit) queryParams.append('limit', params.limit.toString());
@@ -505,13 +471,13 @@ class ApiService {
 
       console.log('查詢預約請求資料:', {
         url: `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.APPOINTMENTS_SEARCH}?${queryParams.toString()}`,
-        headers: API_CONFIG.getHeaders(lineUserId),
+        headers: API_CONFIG.getHeaders(activeLineUserId),
         body: requestBody
       });
 
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.APPOINTMENTS_SEARCH}?${queryParams.toString()}`, {
         method: 'POST',
-        headers: API_CONFIG.getHeaders(lineUserId),
+        headers: API_CONFIG.getHeaders(activeLineUserId),
         body: JSON.stringify(requestBody),
       });
 
@@ -543,15 +509,16 @@ class ApiService {
   // 第二步：修改預約
   async updateAppointment(appointmentId: string, updateData: UpdateAppointmentData, lineUserId?: string): Promise<ApiResponse<ApiAppointment>> {
     try {
+      const activeLineUserId = lineUserId || getLineUserId();
       console.log('修改預約請求資料:', {
         url: `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.APPOINTMENT_BY_ID(appointmentId)}`,
-        headers: API_CONFIG.getHeaders(lineUserId),
+        headers: API_CONFIG.getHeaders(activeLineUserId),
         body: updateData
       });
 
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.APPOINTMENT_BY_ID(appointmentId)}`, {
         method: 'PATCH',
-        headers: API_CONFIG.getHeaders(lineUserId),
+        headers: API_CONFIG.getHeaders(activeLineUserId),
         body: JSON.stringify(updateData),
       });
 
@@ -583,14 +550,15 @@ class ApiService {
   // 第三步：刪除預約
   async deleteAppointment(appointmentId: string, lineUserId?: string): Promise<ApiResponse<{ message: string }>> {
     try {
+      const activeLineUserId = lineUserId || getLineUserId();
       console.log('刪除預約請求:', {
         url: `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.APPOINTMENT_BY_ID(appointmentId)}`,
-        headers: API_CONFIG.getHeaders(lineUserId)
+        headers: API_CONFIG.getHeaders(activeLineUserId)
       });
 
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.APPOINTMENT_BY_ID(appointmentId)}`, {
         method: 'DELETE',
-        headers: API_CONFIG.getHeaders(lineUserId),
+        headers: API_CONFIG.getHeaders(activeLineUserId),
       });
 
       console.log('刪除預約回應狀態:', response.status);
@@ -623,15 +591,16 @@ class ApiService {
   // 1. 建立預約諮詢
   async createConsultation(consultationData: CreateConsultationDto, lineUserId?: string, authToken?: string): Promise<ApiResponse<ConsultationResponseDto>> {
     try {
+      const activeLineUserId = lineUserId || getLineUserId();
       console.log('建立諮詢請求資料:', {
         url: `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CONSULTATIONS}`,
-        headers: API_CONFIG.getHeaders(lineUserId, authToken),
+        headers: API_CONFIG.getHeaders(activeLineUserId, authToken),
         body: consultationData
       });
 
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CONSULTATIONS}`, {
         method: 'POST',
-        headers: API_CONFIG.getHeaders(lineUserId, authToken),
+        headers: API_CONFIG.getHeaders(activeLineUserId, authToken),
         body: JSON.stringify(consultationData),
       });
 
@@ -707,15 +676,16 @@ class ApiService {
   // 3. 更新預約諮詢
   async updateConsultation(consultationId: string, updateData: UpdateConsultationDto, lineUserId?: string, authToken?: string): Promise<ApiResponse<ConsultationResponseDto>> {
     try {
+      const activeLineUserId = lineUserId || getLineUserId();
       console.log('更新諮詢請求資料:', {
         url: `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CONSULTATION_BY_ID(consultationId)}`,
-        headers: API_CONFIG.getHeaders(lineUserId, authToken),
+        headers: API_CONFIG.getHeaders(activeLineUserId, authToken),
         body: updateData
       });
 
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CONSULTATION_BY_ID(consultationId)}`, {
         method: 'PUT',
-        headers: API_CONFIG.getHeaders(lineUserId, authToken),
+        headers: API_CONFIG.getHeaders(activeLineUserId, authToken),
         body: JSON.stringify(updateData),
       });
 
@@ -747,14 +717,15 @@ class ApiService {
   // 4. 刪除預約諮詢
   async deleteConsultation(consultationId: string, lineUserId: string, authToken?: string): Promise<ApiResponse<void>> {
     try {
+      const activeLineUserId = lineUserId || getLineUserId();
       console.log('刪除諮詢請求:', {
         url: `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CONSULTATION_BY_ID(consultationId)}`,
-        headers: API_CONFIG.getHeaders(lineUserId, authToken)
+        headers: API_CONFIG.getHeaders(activeLineUserId, authToken)
       });
 
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CONSULTATION_BY_ID(consultationId)}`, {
         method: 'DELETE',
-        headers: API_CONFIG.getHeaders(lineUserId, authToken),
+        headers: API_CONFIG.getHeaders(activeLineUserId, authToken),
       });
 
       console.log('刪除諮詢回應狀態:', response.status);

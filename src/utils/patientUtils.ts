@@ -1,6 +1,6 @@
-import { PatientProfile, PatientFormData } from '../types/patient';
+import { PatientFormData, PatientProfile } from '../types/patient';
 import { ApiPatient, PatientCreateData } from '../services/apiService';
-import { LINE_USER_ID } from '../config/api';
+import { getLineUserId } from '../config/api';
 
 // 將 API 資料轉換為 PatientProfile 格式
 export const convertApiToPatientProfile = (apiPatient: ApiPatient): PatientProfile => {
@@ -23,7 +23,7 @@ export const convertApiToPatientProfile = (apiPatient: ApiPatient): PatientProfi
 };
 
 // 將 PatientFormData 轉換為 API 創建格式
-export const convertPatientFormToApiCreate = (formData: PatientFormData, lineUserId: string = LINE_USER_ID): PatientCreateData => {
+export const convertPatientFormToApiCreate = (formData: PatientFormData, lineUserId: string = getLineUserId()): PatientCreateData => {
   // 將 birthDate 保持為 YYYY-MM-DD 格式
   let birthDateFormatted = formData.birthDate;
   if (formData.birthDate.length === 8) {

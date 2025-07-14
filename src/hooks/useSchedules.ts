@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ScheduleProgress } from '../types/schedule';
 import { apiService, ScheduleParams, ApiSchedulesResponse } from '../services/apiService';
 import { convertApiToScheduleProgressArray } from '../utils/scheduleUtils';
-import { LINE_USER_ID } from '../config/api';
+import { getLineUserId } from '../config/api';
 
 interface UseSchedulesReturn {
   schedules: ScheduleProgress[];
@@ -13,18 +13,31 @@ interface UseSchedulesReturn {
 
 export const useSchedules = (
   initialParams: ScheduleParams = {},
-  lineUserId: string = LINE_USER_ID
+  lineUserId?: string
 ): UseSchedulesReturn => {
   const [schedules, setSchedules] = useState<ScheduleProgress[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // 獲取實際的LINE user ID
+  const getActiveLineUserId = (): string => {
+    if (lineUserId) {
+      return lineUserId;
+    }
+    try {
+      return getLineUserId();
+    } catch (error) {
+      console.warn('Failed to get LINE user ID, this might cause API calls to fail');
+      throw error;
+    }
+  };
 
   const fetchSchedules = async (params: ScheduleParams = initialParams) => {
     setLoading(true);
     setError(null);
     
     try {
-      const response = await apiService.getSchedules(params, lineUserId);
+      const response = await apiService.getSchedules(params, getActiveLineUserId());
       
       if (response.success && response.data) {
         const schedulesData = convertApiToScheduleProgressArray(response.data.data);

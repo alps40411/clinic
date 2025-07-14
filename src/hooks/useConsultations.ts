@@ -7,7 +7,7 @@ import {
   PaginatedConsultationResponseDto, 
   ConsultationQueryParams 
 } from '../types/consultation';
-import { LINE_USER_ID } from '../config/api';
+import { getLineUserId } from '../config/api';
 
 export const useConsultations = () => {
   const [consultations, setConsultations] = useState<ConsultationResponseDto[]>([]);
@@ -15,6 +15,19 @@ export const useConsultations = () => {
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // 獲取實際的LINE user ID
+  const getActiveLineUserId = (providedLineUserId?: string): string => {
+    if (providedLineUserId) {
+      return providedLineUserId;
+    }
+    try {
+      return getLineUserId();
+    } catch (error) {
+      console.warn('Failed to get LINE user ID, this might cause API calls to fail');
+      throw error;
+    }
+  };
 
   // 建立諮詢預約
   const createConsultation = useCallback(async (
@@ -28,7 +41,7 @@ export const useConsultations = () => {
     try {
       const response = await apiService.createConsultation(
         consultationData, 
-        lineUserId || LINE_USER_ID, 
+        getActiveLineUserId(lineUserId), 
         authToken
       );
       
@@ -57,7 +70,7 @@ export const useConsultations = () => {
     try {
       const response = await apiService.getConsultationsByLine(
         params, 
-        lineUserId || LINE_USER_ID
+        getActiveLineUserId(lineUserId)
       );
       
       if (response.success) {
@@ -91,7 +104,7 @@ export const useConsultations = () => {
       const response = await apiService.updateConsultation(
         consultationId, 
         updateData, 
-        lineUserId || LINE_USER_ID, 
+        getActiveLineUserId(lineUserId), 
         authToken
       );
       
@@ -127,7 +140,7 @@ export const useConsultations = () => {
     try {
       const response = await apiService.deleteConsultation(
         consultationId, 
-        lineUserId || LINE_USER_ID, 
+        getActiveLineUserId(lineUserId), 
         authToken
       );
       

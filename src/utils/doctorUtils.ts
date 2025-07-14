@@ -30,22 +30,28 @@ export const convertApiToDoctor = (apiDoctor: ApiDoctor): Doctor => {
 };
 
 // 將 API 醫生陣列轉換為 DoctorInfo 陣列
-export const convertApiToDoctorInfoArray = (apiData: ApiDoctorsResponse): DoctorInfo[] => {
-  if (!apiData || !apiData.data || !Array.isArray(apiData.data)) {
-    console.warn('API 返回的醫師資料格式不正確:', apiData);
+export const convertApiToDoctorInfoArray = (apiData: ApiDoctor[]): DoctorInfo[] => {
+  console.log('convertApiToDoctorInfoArray 接收到的資料:', apiData);
+  console.log('資料類型:', typeof apiData);
+  console.log('是否為陣列:', Array.isArray(apiData));
+  
+  if (!apiData || !Array.isArray(apiData)) {
+    console.warn('API 返回的醫師資料不是陣列:', apiData);
     return [];
   }
   
-  console.log('處理 API 醫師資料:', apiData.data);
-  return apiData.data.map(convertApiToDoctorInfo);
+  console.log('處理 API 醫師資料，共', apiData.length, '位醫師');
+  return apiData.map(convertApiToDoctorInfo);
 };
 
 // 將 API 醫生陣列轉換為 Doctor 陣列
-export const convertApiToDoctorArray = (apiData: ApiDoctorsResponse): Doctor[] => {
-  if (!apiData || !apiData.data || !Array.isArray(apiData.data)) {
-    console.warn('API 返回的醫師資料格式不正確:', apiData);
+export const convertApiToDoctorArray = (apiData: ApiDoctor[]): Doctor[] => {
+  console.log('convertApiToDoctorArray 接收到的資料:', apiData);
+  
+  if (!apiData || !Array.isArray(apiData)) {
+    console.warn('API 返回的醫師資料不是陣列:', apiData);
     return [];
   }
   
-  return apiData.data.map(convertApiToDoctor);
+  return apiData.map(convertApiToDoctor);
 }; 

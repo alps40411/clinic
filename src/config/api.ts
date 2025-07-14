@@ -11,12 +11,25 @@ const getBaseUrl = () => {
 
 // 動態獲取 LINE User ID 的函數
 export const getLineUserId = (): string => {
-  const userId = liffService.getUserId();
-  if (!userId) {
-    console.warn('LINE User ID not available, please ensure LIFF is properly initialized');
-    throw new Error('LINE User ID not available');
+  const isMockMode = import.meta.env.VITE_LIFF_MOCK === 'true';
+  
+  if (isMockMode) {
+    // Mock 模式：從環境變數獲取 mock user id
+    const envUserId = import.meta.env.VITE_MOCK_USER_ID;
+    if (!envUserId) {
+      console.warn('VITE_MOCK_USER_ID not found in environment variables');
+      throw new Error('VITE_MOCK_USER_ID not found in environment variables');
+    }
+    return envUserId;
+  } else {
+    // 非 Mock 模式：從 liff 服務獲取真實 user id
+    const userId = liffService.getUserId();
+    if (!userId) {
+      console.warn('LINE User ID not available from LIFF service, please ensure LIFF is properly initialized');
+      throw new Error('LINE User ID not available from LIFF service');
+    }
+    return userId;
   }
-  return userId;
 };
 
 // 每個分頁對應的LIFF ID配置

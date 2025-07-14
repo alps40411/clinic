@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { DoctorInfo } from '../types/doctor';
 import { Doctor } from '../types/appointment';
-import { apiService, ApiDoctorsResponse } from '../services/apiService';
 import { convertApiToDoctorInfoArray, convertApiToDoctorArray } from '../utils/doctorUtils';
+import { apiService, ApiDoctor, ApiDoctorsResponse } from '../services/apiService';
 import { doctorsInfo } from '../data/doctorData';
 import { doctors as mockDoctors } from '../data/mockData';
 import { getLineUserId } from '../config/api';
@@ -43,25 +43,28 @@ export const useDoctors = (lineUserId?: string): UseDoctorsReturn => {
       
       if (response.success && response.data) {
         try {
-          // 轉換 API 資料為所需格式
-          // 由於 API 直接返回 ApiDoctor[]，需要包裝為 ApiDoctorsResponse 格式
-          const wrappedResponse: ApiDoctorsResponse = {
-            data: response.data,
-            meta: {
-              total: response.data.length,
-              page: 1,
-              limit: response.data.length,
-              totalPages: 1
-            }
-          };
+          console.log('API 響應:', response);
+          console.log('response.data 類型:', typeof response.data);
+          console.log('response.data 內容:', response.data);
           
-          const apiDoctorsInfo = convertApiToDoctorInfoArray(wrappedResponse);
-          const apiDoctors = convertApiToDoctorArray(wrappedResponse);
+          // response.data 現在是 ApiDoctorsResponse 格式 {data: ApiDoctor[], meta: {...}}
+          const apiDoctorsResponse = response.data;
+          
+          if (!apiDoctorsResponse.data || !Array.isArray(apiDoctorsResponse.data)) {
+            throw new Error('API 響應格式不正確：缺少 data 陣列');
+          }
+          
+          const doctorsArray = apiDoctorsResponse.data;
+          console.log('提取的醫師陣列:', doctorsArray);
+          
+          const apiDoctorsInfo = convertApiToDoctorInfoArray(doctorsArray);
+          const apiDoctors = convertApiToDoctorArray(doctorsArray);
           
           // 如果轉換後有資料，使用 API 資料；否則使用本地資料
           if (apiDoctorsInfo.length > 0) {
             setDoctorsInfoState(apiDoctorsInfo);
             setDoctorsState(apiDoctors);
+            console.log('成功轉換 API 醫師資料，共', apiDoctorsInfo.length, '位醫師');
           } else {
             console.warn('API 返回空的醫師陣列，使用本地資料');
             setError('API 返回的醫師資料為空');
@@ -82,9 +85,9 @@ export const useDoctors = (lineUserId?: string): UseDoctorsReturn => {
         setDoctorsState(mockDoctors);
       }
     } catch (err) {
-      // 網路錯誤或其他異常時使用本地資料
       console.error('獲取醫生資料時發生錯誤:', err);
       setError(err instanceof Error ? err.message : '未知錯誤');
+      // 網路錯誤時使用本地資料
       setDoctorsInfoState(doctorsInfo);
       setDoctorsState(mockDoctors);
     } finally {

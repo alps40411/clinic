@@ -1,7 +1,7 @@
 import React from 'react';
-import { User, Stethoscope } from 'lucide-react';
+import { User, Stethoscope, Loader2, AlertCircle } from 'lucide-react';
 import { Doctor } from '../types/appointment';
-import { doctors } from '../data/mockData';
+import { useDoctors } from '../hooks/useDoctors';
 
 interface DoctorSelectionProps {
   selectedDoctor: Doctor | null;
@@ -9,12 +9,29 @@ interface DoctorSelectionProps {
 }
 
 const DoctorSelection: React.FC<DoctorSelectionProps> = ({ selectedDoctor, onSelectDoctor }) => {
+  const { doctors, loading, error } = useDoctors();
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
       <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
         <Stethoscope className="w-5 h-5 text-cyan-500" />
         選擇醫師
       </h2>
+
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin text-cyan-500 mr-2" />
+          <span className="text-gray-600">載入醫師資訊中...</span>
+        </div>
+      )}
+      
+      {error && (
+        <div className="flex items-center py-4 mb-4 bg-yellow-50 border border-yellow-200 rounded-lg px-4">
+          <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0" />
+          <span className="text-yellow-800 text-sm">
+            無法載入最新醫師資訊，顯示本地資料
+          </span>
+        </div>
+      )}
       
       <div className="grid grid-cols-1 gap-4">
         {doctors.map((doctor) => (

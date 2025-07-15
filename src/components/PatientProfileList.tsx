@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Users, Plus, Edit3, Trash2, User, Phone, Mail, MapPin, Heart, AlertTriangle, FileText, Eye, X } from 'lucide-react';
+import { Users, Plus, Edit3, Trash2, User, Phone, Mail, Calendar, Eye, X } from 'lucide-react';
 import { PatientProfile } from '../types/patient';
-import { mockPatientProfiles, bloodTypes } from '../data/patientData';
+import { usePatients } from '../hooks/usePatients';
 
 interface PatientProfileListProps {
   onAddProfile: () => void;
@@ -12,36 +12,58 @@ const PatientProfileList: React.FC<PatientProfileListProps> = ({
   onAddProfile,
   onEditProfile
 }) => {
-  const [profiles, setProfiles] = useState<PatientProfile[]>(mockPatientProfiles);
+  const { patients, deletePatient, loading, error } = usePatients();
   const [selectedProfile, setSelectedProfile] = useState<PatientProfile | null>(null);
 
-  const handleDelete = (profileId: string) => {
-    const profile = profiles.find(p => p.id === profileId);
+  const handleDelete = async (profileId: string) => {
+    const profile = patients.find(p => p.id === profileId);
     if (profile && window.confirm(`確定要刪除 ${profile.name} 的資料嗎？`)) {
-      setProfiles(prev => prev.filter(p => p.id !== profileId));
-      alert('使用者資料已成功刪除');
+      const success = await deletePatient(profileId);
+      if (success) {
+        alert('使用者資料已成功刪除');
+      } else {
+        alert(`刪除失敗：${error || '未知錯誤'}`);
+      }
     }
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('zh-TW', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  const formatBirthDate = (birthDate: string) => {
-    if (birthDate.length === 8) {
-      return `${birthDate.slice(0, 4)}年${birthDate.slice(4, 6)}月${birthDate.slice(6, 8)}日`;
+    if (!dateString) return '';
+    
+    try {
+      // 處理 ISO 格式的日期
+      if (dateString.includes('T')) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('zh-TW', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+      }
+      
+      // 處理 8 位數字格式的日期
+      if (dateString.length === 8) {
+        const year = dateString.slice(0, 4);
+        const month = dateString.slice(4, 6);
+        const day = dateString.slice(6, 8);
+        return `${year}年${month}月${day}日`;
+      }
+      
+      // 處理 YYYY-MM-DD 格式
+      if (dateString.includes('-')) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('zh-TW', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+      }
+      
+      return dateString;
+    } catch (error) {
+      console.error('日期格式錯誤:', error);
+      return dateString;
     }
-    return birthDate;
-  };
-
-  const getBloodTypeLabel = (value: string) => {
-    const bloodType = bloodTypes.find(type => type.value === value);
-    return bloodType ? bloodType.label : value;
   };
 
   if (selectedProfile) {
@@ -89,10 +111,10 @@ const PatientProfileList: React.FC<PatientProfileListProps> = ({
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <User className="w-4 h-4 text-gray-400" />
+                    <Calendar className="w-4 h-4 text-gray-400" />
                     <div>
                       <p className="text-sm text-gray-500">出生日期</p>
-                      <p className="text-gray-800">{formatBirthDate(selectedProfile.birthDate)}</p>
+                      <p className="text-gray-800">{formatDate(selectedProfile.birthDate)}</p>
                     </div>
                   </div>
                 </div>
@@ -118,92 +140,24 @@ const PatientProfileList: React.FC<PatientProfileListProps> = ({
                       <p className="text-gray-800">{selectedProfile.email}</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <MapPin className="w-4 h-4 text-gray-400 mt-1" />
-                    <div>
-                      <p className="text-sm text-gray-500">地址</p>
-                      <p className="text-gray-800">{selectedProfile.address}</p>
-                    </div>
-                  </div>
                 </div>
               </div>
-
-              {/* Emergency Contact */}
-              <div>
-                <h3 className="text-md font-medium text-gray-800 mb-3 border-b border-gray-200 pb-2">
-                  緊急聯絡人
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <User className="w-4 h-4 text-gray-400" />
-                    <div>
-                      <p className="text-sm text-gray-500">姓名</p>
-                      <p className="text-gray-800">{selectedProfile.emergencyContact}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Phone className="w-4 h-4 text-gray-400" />
-                    <div>
-                      <p className="text-sm text-gray-500">電話</p>
-                      <p className="text-gray-800">{selectedProfile.emergencyPhone}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Medical Information */}
-              {(selectedProfile.bloodType || selectedProfile.allergies || selectedProfile.medicalHistory) && (
-                <div>
-                  <h3 className="text-md font-medium text-gray-800 mb-3 border-b border-gray-200 pb-2">
-                    醫療資訊
-                  </h3>
-                  <div className="space-y-3">
-                    {selectedProfile.bloodType && (
-                      <div className="flex items-center gap-3">
-                        <Heart className="w-4 h-4 text-gray-400" />
-                        <div>
-                          <p className="text-sm text-gray-500">血型</p>
-                          <p className="text-gray-800">{getBloodTypeLabel(selectedProfile.bloodType)}</p>
-                        </div>
-                      </div>
-                    )}
-                    {selectedProfile.allergies && (
-                      <div className="flex items-start gap-3">
-                        <AlertTriangle className="w-4 h-4 text-gray-400 mt-1" />
-                        <div>
-                          <p className="text-sm text-gray-500">過敏史</p>
-                          <p className="text-gray-800">{selectedProfile.allergies}</p>
-                        </div>
-                      </div>
-                    )}
-                    {selectedProfile.medicalHistory && (
-                      <div className="flex items-start gap-3">
-                        <FileText className="w-4 h-4 text-gray-400 mt-1" />
-                        <div>
-                          <p className="text-sm text-gray-500">病史</p>
-                          <p className="text-gray-800">{selectedProfile.medicalHistory}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => onEditProfile(selectedProfile)}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200"
+                className="flex-1 bg-cyan-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-cyan-600 transition-colors duration-200 flex items-center justify-center gap-2"
               >
                 <Edit3 className="w-4 h-4" />
-                編輯資料
+                編輯
               </button>
               <button
                 onClick={() => handleDelete(selectedProfile.id)}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-all duration-200"
+                className="flex-1 bg-red-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-red-600 transition-colors duration-200 flex items-center justify-center gap-2"
               >
                 <Trash2 className="w-4 h-4" />
-                刪除資料
+                刪除
               </button>
             </div>
           </div>
@@ -219,91 +173,80 @@ const PatientProfileList: React.FC<PatientProfileListProps> = ({
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
             <Users className="w-6 h-6 text-cyan-500" />
-            看診資訊設定
+            使用者管理
           </h1>
           <button
             onClick={onAddProfile}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors duration-200"
+            className="bg-cyan-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-cyan-600 transition-colors duration-200 flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             新增
           </button>
         </div>
 
-        <div className="text-center mb-6">
-          <p className="text-gray-600">管理您的使用者資料，方便預約看診時直接選擇</p>
-        </div>
+        {/* Status Messages */}
+        {loading && (
+          <div className="text-center py-4">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
+            <p className="mt-2 text-gray-600">載入中...</p>
+          </div>
+        )}
 
-        {/* Profiles List */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          {profiles.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p className="mb-4">尚未新增任何使用者資料</p>
-              <button
-                onClick={onAddProfile}
-                className="px-6 py-3 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors duration-200 flex items-center gap-2 mx-auto"
-              >
-                <Plus className="w-4 h-4" />
-                新增第一筆資料
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <h3 className="font-medium text-gray-800 mb-4">
-                已儲存 {profiles.length} 筆使用者資料
-              </h3>
-              {profiles.map((profile) => (
-                <div key={profile.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow duration-200">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center">
-                      <User className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-800">{profile.name}</h4>
-                      <p className="text-sm text-gray-500">{profile.idNumber}</p>
-                    </div>
+        {/* Patient List */}
+        <div className="space-y-4">
+          {patients.map((profile) => (
+            <div key={profile.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center">
+                    <User className="w-5 h-5 text-white" />
                   </div>
-                  
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center gap-2 text-gray-600 text-sm">
-                      <Phone className="w-4 h-4" />
-                      <span>{profile.phone}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-600 text-sm">
-                      <Mail className="w-4 h-4" />
-                      <span>{profile.email}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setSelectedProfile(profile)}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-all duration-200"
-                    >
-                      <Eye className="w-4 h-4" />
-                      查看詳情
-                    </button>
-                    <button
-                      onClick={() => onEditProfile(profile)}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                      編輯
-                    </button>
-                    <button
-                      onClick={() => handleDelete(profile.id)}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-all duration-200"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      刪除
-                    </button>
+                  <div>
+                    <h3 className="font-semibold text-gray-800">{profile.name}</h3>
+                    <p className="text-sm text-gray-500">身分證字號: {profile.idNumber}</p>
+                    <p className="text-sm text-gray-500">出生日期: {formatDate(profile.birthDate)}</p>
                   </div>
                 </div>
-              ))}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedProfile(profile)}
+                    className="p-2 text-gray-500 hover:text-cyan-500 transition-colors duration-200"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => onEditProfile(profile)}
+                    className="p-2 text-gray-500 hover:text-cyan-500 transition-colors duration-200"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(profile.id)}
+                    className="p-2 text-gray-500 hover:text-red-500 transition-colors duration-200"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </div>
-          )}
+          ))}
         </div>
+
+        {/* Empty State */}
+        {!loading && patients.length === 0 && (
+          <div className="text-center py-12">
+            <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-800 mb-2">尚無使用者資料</h3>
+            <p className="text-gray-500 mb-4">點擊「新增」按鈕開始新增使用者資料</p>
+            <button
+              onClick={onAddProfile}
+              className="bg-cyan-500 text-white py-3 px-6 rounded-lg font-medium hover:bg-cyan-600 transition-colors duration-200 flex items-center gap-2 mx-auto"
+            >
+              <Plus className="w-4 h-4" />
+              新增第一個使用者
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

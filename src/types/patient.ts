@@ -21,10 +21,4 @@ export interface PatientFormData {
   phone: string;
   email: string;
   birthDate: string;
-  address: string;
-  emergencyContact: string;
-  emergencyPhone: string;
-  bloodType?: string;
-  allergies?: string;
-  medicalHistory?: string;
 }

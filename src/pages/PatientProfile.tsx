@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import PatientProfileList from '../components/PatientProfileList';
 import PatientProfileForm from '../components/PatientProfileForm';
 import { PatientProfile, PatientFormData } from '../types/patient';
+import { usePatients } from '../hooks/usePatients';
 
 type ViewMode = 'list' | 'form';
 
 const PatientProfileManager: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewMode>('list');
   const [editingProfile, setEditingProfile] = useState<PatientProfile | null>(null);
+  const { createPatient, updatePatient, loading, error } = usePatients();
 
   const handleAddProfile = () => {
     setEditingProfile(null);
@@ -19,16 +21,26 @@ const PatientProfileManager: React.FC = () => {
     setCurrentView('form');
   };
 
-  const handleSaveProfile = (profileData: PatientFormData) => {
+  const handleSaveProfile = async (profileData: PatientFormData) => {
     console.log('Saving profile:', profileData);
-    // Here you would typically save to your backend or local storage
     
-    // Simulate success
-    setTimeout(() => {
+    let success = false;
+    
+    if (editingProfile) {
+      // 更新現有患者
+      success = await updatePatient(editingProfile.id, profileData);
+    } else {
+      // 創建新患者
+      success = await createPatient(profileData);
+    }
+    
+    if (success) {
       alert(editingProfile ? '使用者資料已成功更新！' : '使用者資料已成功新增！');
       setCurrentView('list');
       setEditingProfile(null);
-    }, 100);
+    } else {
+      alert(`${editingProfile ? '更新' : '新增'}失敗：${error || '未知錯誤'}`);
+    }
   };
 
   const handleCancel = () => {
@@ -42,6 +54,7 @@ const PatientProfileManager: React.FC = () => {
         editingProfile={editingProfile}
         onSave={handleSaveProfile}
         onCancel={handleCancel}
+        loading={loading}
       />
     );
   }

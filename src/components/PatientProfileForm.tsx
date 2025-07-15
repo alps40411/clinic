@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { User, Phone, Mail, MapPin, Heart, AlertTriangle, FileText, Save, X, Calendar } from 'lucide-react';
+import { User, Phone, Mail, Calendar, Save, X } from 'lucide-react';
 import { PatientProfile, PatientFormData } from '../types/patient';
-import { bloodTypes } from '../data/patientData';
 import { validateIdNumber } from '../utils/dateUtils';
 
 interface PatientProfileFormProps {
   editingProfile?: PatientProfile | null;
   onSave: (profileData: PatientFormData) => void;
   onCancel: () => void;
+  loading?: boolean;
 }
 
 const PatientProfileForm: React.FC<PatientProfileFormProps> = ({
   editingProfile,
   onSave,
-  onCancel
+  onCancel,
+  loading = false
 }) => {
   const [formData, setFormData] = useState<PatientFormData>({
     name: '',
@@ -21,12 +22,6 @@ const PatientProfileForm: React.FC<PatientProfileFormProps> = ({
     phone: '',
     email: '',
     birthDate: '',
-    address: '',
-    emergencyContact: '',
-    emergencyPhone: '',
-    bloodType: '',
-    allergies: '',
-    medicalHistory: ''
   });
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -34,18 +29,21 @@ const PatientProfileForm: React.FC<PatientProfileFormProps> = ({
 
   useEffect(() => {
     if (editingProfile) {
+      // 將 ISO 格式的日期轉換為 YYYY-MM-DD 格式
+      let birthDate = editingProfile.birthDate;
+      if (birthDate.includes('T')) {
+        birthDate = birthDate.split('T')[0];
+      } else if (birthDate.length === 8) {
+        // 如果是8位數字格式，轉換為 YYYY-MM-DD
+        birthDate = `${birthDate.slice(0, 4)}-${birthDate.slice(4, 6)}-${birthDate.slice(6, 8)}`;
+      }
+      
       setFormData({
         name: editingProfile.name,
         idNumber: editingProfile.idNumber,
         phone: editingProfile.phone,
         email: editingProfile.email,
-        birthDate: editingProfile.birthDate,
-        address: editingProfile.address,
-        emergencyContact: editingProfile.emergencyContact,
-        emergencyPhone: editingProfile.emergencyPhone,
-        bloodType: editingProfile.bloodType || '',
-        allergies: editingProfile.allergies || '',
-        medicalHistory: editingProfile.medicalHistory || ''
+        birthDate: birthDate,
       });
     }
   }, [editingProfile]);
@@ -76,23 +74,7 @@ const PatientProfileForm: React.FC<PatientProfileFormProps> = ({
     }
 
     if (!formData.birthDate) {
-      newErrors.birthDate = '請輸入出生日期';
-    } else if (!/^\d{8}$/.test(formData.birthDate)) {
-      newErrors.birthDate = '請輸入8位數字的出生日期';
-    }
-
-    if (!formData.address.trim()) {
-      newErrors.address = '請輸入地址';
-    }
-
-    if (!formData.emergencyContact.trim()) {
-      newErrors.emergencyContact = '請輸入緊急聯絡人';
-    }
-
-    if (!formData.emergencyPhone.trim()) {
-      newErrors.emergencyPhone = '請輸入緊急聯絡人電話';
-    } else if (!/^09\d{8}$/.test(formData.emergencyPhone)) {
-      newErrors.emergencyPhone = '緊急聯絡人電話格式不正確';
+      newErrors.birthDate = '請選擇出生日期';
     }
 
     setErrors(newErrors);
@@ -113,11 +95,18 @@ const PatientProfileForm: React.FC<PatientProfileFormProps> = ({
 
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      onSave(formData);
+    try {
+      // 將日期轉換為 8 位數字格式以符合 API 要求
+      const formattedData = {
+        ...formData,
+        birthDate: formData.birthDate.replace(/-/g, ''),
+      };
+      await onSave(formattedData);
+    } catch (error) {
+      console.error('提交表單時發生錯誤:', error);
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -191,15 +180,13 @@ const PatientProfileForm: React.FC<PatientProfileFormProps> = ({
                   出生日期 <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="text"
+                  type="date"
                   id="birthDate"
                   value={formData.birthDate}
                   onChange={(e) => handleInputChange('birthDate', e.target.value)}
-                  placeholder="請輸入8碼西元生日，如19880808"
                   className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 ${
                     errors.birthDate ? 'border-red-300' : 'border-gray-200'
                   }`}
-                  maxLength={8}
                 />
                 {errors.birthDate && <p className="mt-1 text-sm text-red-600">{errors.birthDate}</p>}
               </div>
@@ -247,127 +234,6 @@ const PatientProfileForm: React.FC<PatientProfileFormProps> = ({
                   }`}
                 />
                 {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
-              </div>
-
-              {/* Address */}
-              <div>
-                <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
-                  <MapPin className="w-4 h-4 inline mr-2" />
-                  地址 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => handleInputChange('address', e.target.value)}
-                  placeholder="請輸入地址"
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 ${
-                    errors.address ? 'border-red-300' : 'border-gray-200'
-                  }`}
-                />
-                {errors.address && <p className="mt-1 text-sm text-red-600">{errors.address}</p>}
-              </div>
-            </div>
-
-            {/* Emergency Contact */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-800 border-b border-gray-200 pb-2">
-                緊急聯絡人
-              </h3>
-
-              {/* Emergency Contact Name */}
-              <div>
-                <label htmlFor="emergencyContact" className="block text-sm font-medium text-gray-700 mb-2">
-                  緊急聯絡人姓名 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="emergencyContact"
-                  value={formData.emergencyContact}
-                  onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
-                  placeholder="請輸入緊急聯絡人姓名"
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 ${
-                    errors.emergencyContact ? 'border-red-300' : 'border-gray-200'
-                  }`}
-                />
-                {errors.emergencyContact && <p className="mt-1 text-sm text-red-600">{errors.emergencyContact}</p>}
-              </div>
-
-              {/* Emergency Contact Phone */}
-              <div>
-                <label htmlFor="emergencyPhone" className="block text-sm font-medium text-gray-700 mb-2">
-                  緊急聯絡人電話 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="tel"
-                  id="emergencyPhone"
-                  value={formData.emergencyPhone}
-                  onChange={(e) => handleInputChange('emergencyPhone', e.target.value)}
-                  placeholder="請輸入緊急聯絡人電話"
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 ${
-                    errors.emergencyPhone ? 'border-red-300' : 'border-gray-200'
-                  }`}
-                />
-                {errors.emergencyPhone && <p className="mt-1 text-sm text-red-600">{errors.emergencyPhone}</p>}
-              </div>
-            </div>
-
-            {/* Medical Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-800 border-b border-gray-200 pb-2">
-                醫療資訊（選填）
-              </h3>
-
-              {/* Blood Type */}
-              <div>
-                <label htmlFor="bloodType" className="block text-sm font-medium text-gray-700 mb-2">
-                  <Heart className="w-4 h-4 inline mr-2" />
-                  血型
-                </label>
-                <select
-                  id="bloodType"
-                  value={formData.bloodType}
-                  onChange={(e) => handleInputChange('bloodType', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
-                >
-                  {bloodTypes.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Allergies */}
-              <div>
-                <label htmlFor="allergies" className="block text-sm font-medium text-gray-700 mb-2">
-                  <AlertTriangle className="w-4 h-4 inline mr-2" />
-                  過敏史
-                </label>
-                <textarea
-                  id="allergies"
-                  value={formData.allergies}
-                  onChange={(e) => handleInputChange('allergies', e.target.value)}
-                  placeholder="請輸入過敏史（如：花生過敏、藥物過敏等）"
-                  rows={3}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 resize-none"
-                />
-              </div>
-
-              {/* Medical History */}
-              <div>
-                <label htmlFor="medicalHistory" className="block text-sm font-medium text-gray-700 mb-2">
-                  <FileText className="w-4 h-4 inline mr-2" />
-                  病史
-                </label>
-                <textarea
-                  id="medicalHistory"
-                  value={formData.medicalHistory}
-                  onChange={(e) => handleInputChange('medicalHistory', e.target.value)}
-                  placeholder="請輸入相關病史（如：高血壓、糖尿病等）"
-                  rows={3}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 resize-none"
-                />
               </div>
             </div>
 

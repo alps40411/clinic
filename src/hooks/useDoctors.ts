@@ -1,47 +1,59 @@
 import { useState, useEffect } from 'react';
-import { DoctorInfo } from '../types/doctor';
 import { Doctor } from '../types/appointment';
-import { useClinicInfo } from './useClinicInfo';
-import { convertApiToDoctorArray } from '../utils/doctorUtils';
+import { apiService } from '../services/apiService';
+import { doctors as mockDoctors } from '../data/mockData';
 
 interface UseDoctorsReturn {
-  doctorsInfo: DoctorInfo[];
   doctors: Doctor[];
   loading: boolean;
   error: string | null;
 }
 
 export const useDoctors = (lineUserId?: string): UseDoctorsReturn => {
-  const [doctorsState, setDoctorsState] = useState<Doctor[]>([]);
-  
-  // 使用新的診所資訊 hook
-  const { doctorsInfo, loading, error } = useClinicInfo(lineUserId);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // 將醫生資訊轉換為預約系統所需的格式
-  useEffect(() => {
-    if (doctorsInfo.length > 0) {
-      try {
-        // 轉換 DoctorInfo[] 為 Doctor[] 格式以供預約系統使用
-        const convertedDoctors: Doctor[] = doctorsInfo.map((doctorInfo) => ({
-          id: doctorInfo.id,
-          name: doctorInfo.name,
-          specialty: doctorInfo.specialty?.join(', ') || '家庭醫學',
-          image: '', // 移除圖片
+  const fetchDoctors = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await apiService.getDoctors(lineUserId);
+      
+      if (response.success && response.data) {
+        console.log('醫師 API 響應:', response);
+        
+        // 轉換 API 資料為本地格式
+        const convertedDoctors: Doctor[] = response.data.data.map((apiDoctor) => ({
+          id: apiDoctor.id.toString(),
+          name: apiDoctor.name,
+          specialty: apiDoctor.specialty,
+          image: apiDoctor.information?.image || '',
         }));
         
-        setDoctorsState(convertedDoctors);
-        console.log('成功轉換醫師資料為預約格式，共', convertedDoctors.length, '位醫師');
-      } catch (conversionError) {
-        console.error('醫師資料轉換錯誤:', conversionError);
+        setDoctors(convertedDoctors);
+        console.log('成功獲取醫師資訊，共', convertedDoctors.length, '位醫師');
+      } else {
+        console.warn('醫師 API 獲取失敗，使用本地資料:', response.message);
+        setError(response.message || '醫師 API 呼叫失敗，使用本地資料');
+        setDoctors(mockDoctors);
       }
-    } else {
-      setDoctorsState([]);
+    } catch (err) {
+      console.error('獲取醫師資訊時發生錯誤，使用本地資料:', err);
+      setError(err instanceof Error ? err.message : '未知錯誤，使用本地資料');
+      setDoctors(mockDoctors);
+    } finally {
+      setLoading(false);
     }
-  }, [doctorsInfo]);
+  };
+
+  useEffect(() => {
+    fetchDoctors();
+  }, [lineUserId]);
 
   return {
-    doctorsInfo,
-    doctors: doctorsState,
+    doctors,
     loading,
     error
   };

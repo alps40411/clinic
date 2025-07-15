@@ -92,12 +92,12 @@ function Navigation() {
                 <Stethoscope className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-gray-800">上杉診所</h1>
-                <p className="text-xs text-gray-500">預約管理系統</p>
+                <h1 className="text-lg font-bold text-gray-800">貓頭鷹親子聯合診所</h1>
+                <p className="text-xs text-gray-500">Get Wise. Get Well. Hoot and Heal!</p>
               </div>
             </div>
             
-            <button
+            {/* <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-2 text-gray-600 hover:text-gray-800 transition-colors duration-200"
             >
@@ -106,7 +106,7 @@ function Navigation() {
               ) : (
                 <Menu className="w-6 h-6" />
               )}
-            </button>
+            </button> */}
           </div>
         </div>
       </header>

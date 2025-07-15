@@ -188,14 +188,7 @@ const ClinicInfoDisplay: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-blue-50 px-4 py-8">
       <div className="max-w-md mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2 flex items-center justify-center gap-2">
-            <Stethoscope className="w-8 h-8 text-cyan-500" />
-            {clinicInfo?.title || '診所資訊'}
-          </h1>
-          <p className="text-gray-600">{clinicInfo?.subtitle || ''}</p>
-        </div>
+        
 
         {/* Clinic Information */}
         {clinicInfo && (

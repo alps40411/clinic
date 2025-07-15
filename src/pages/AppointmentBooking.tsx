@@ -40,6 +40,25 @@ const AppointmentBooking: React.FC = () => {
     setCurrentView('booking');
   };
 
+  // 修改醫師選擇處理函數，當醫師改變時重置後續所有選擇
+  const handleDoctorSelect = (doctor: Doctor) => {
+    setSelectedDoctor(doctor);
+    // 重置後續所有選擇
+    setSelectedDate(null);
+    setSelectedTimeSlot(null);
+    setSelectedScheduleId(null);
+    setSelectedScheduleData(null);
+  };
+
+  // 修改日期選擇處理函數，當日期改變時重置時段選擇
+  const handleDateSelect = (date: string) => {
+    setSelectedDate(date);
+    // 重置時段相關選擇
+    setSelectedTimeSlot(null);
+    setSelectedScheduleId(null);
+    setSelectedScheduleData(null);
+  };
+
   const handleTimeSlotSelect = (timeSlot: string, scheduleId: string, scheduleData: any) => {
     setSelectedTimeSlot(timeSlot);
     setSelectedScheduleId(scheduleId);
@@ -138,7 +157,7 @@ const AppointmentBooking: React.FC = () => {
         </div>
 
         <div className="text-center mb-6">
-          <p className="text-gray-600">請依序選擇醫師、日期、時段並確認病患資料完成預約</p>
+          <p className="text-gray-600">依序選擇醫師、日期、時段並確認病患資料完成預約</p>
         </div>
 
         {/* Progress Indicator */}
@@ -182,13 +201,13 @@ const AppointmentBooking: React.FC = () => {
         {/* Booking Steps */}
         <DoctorSelection
           selectedDoctor={selectedDoctor}
-          onSelectDoctor={setSelectedDoctor}
+          onSelectDoctor={handleDoctorSelect}
         />
 
         {selectedDoctor && (
           <DateSelection
             selectedDate={selectedDate}
-            onSelectDate={setSelectedDate}
+            onSelectDate={handleDateSelect}
           />
         )}
 

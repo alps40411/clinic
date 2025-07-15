@@ -66,6 +66,7 @@ export const LIFF_CONFIG = {
 export const API_CONFIG = {
   BASE_URL: getBaseUrl(),
   ENDPOINTS: {
+    CLINICS_INFO: '/clinics/info',
     DOCTORS: '/doctors',
     DOCTOR_BY_ID: (id: string) => `/doctors/${id}`,
     SCHEDULES: '/schedules',

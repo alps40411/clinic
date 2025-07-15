@@ -6,6 +6,7 @@ import {
   PaginatedConsultationResponseDto, 
   ConsultationQueryParams 
 } from '../types/consultation';
+import { ClinicApiResponse } from '../types/doctor';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -193,6 +194,11 @@ class ApiService {
         message: error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
+  }
+
+  async getClinicInfo(lineUserId?: string): Promise<ApiResponse<ClinicApiResponse>> {
+    const activeLineUserId = lineUserId || getLineUserId();
+    return this.request<ClinicApiResponse>(API_CONFIG.ENDPOINTS.CLINICS_INFO, activeLineUserId);
   }
 
   async getDoctors(lineUserId?: string): Promise<ApiResponse<ApiDoctorsResponse>> {

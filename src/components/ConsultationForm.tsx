@@ -91,6 +91,7 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
   const { createConsultation, updateConsultation, loading, error, clearError } = useConsultations();
   
   const [formData, setFormData] = useState<ConsultationFormType>({
+    name: '',
     birthDate: '',
     phone: '',
     email: '',
@@ -121,30 +122,24 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
 
+    if (!formData.name.trim()) {
+      newErrors.name = '請輸入姓名';
+    }
+
     if (!formData.birthDate) {
       newErrors.birthDate = '請輸入出生日期';
-    } else if (!/^\d{8}$/.test(formData.birthDate)) {
-      newErrors.birthDate = '請輸入8位數字的出生日期';
+    } else if (!/^\d{4}-\d{2}-\d{2}$/.test(formData.birthDate)) {
+      newErrors.birthDate = '請輸入正確的日期格式 (YYYY-MM-DD)';
     } else {
       // 驗證日期是否有效
       try {
-        const year = parseInt(formData.birthDate.substring(0, 4));
-        const month = parseInt(formData.birthDate.substring(4, 6));
-        const day = parseInt(formData.birthDate.substring(6, 8));
+        const date = new Date(formData.birthDate);
+        const today = new Date();
         
-        // 基本範圍檢查
-        if (year < 1900 || year > new Date().getFullYear()) {
-          newErrors.birthDate = '年份必須在1900年到今年之間';
-        } else if (month < 1 || month > 12) {
-          newErrors.birthDate = '月份必須在01到12之間';
-        } else if (day < 1 || day > 31) {
-          newErrors.birthDate = '日期必須在01到31之間';
-        } else {
-          // 檢查日期是否真實存在
-          const date = new Date(year, month - 1, day);
-          if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-            newErrors.birthDate = '請輸入有效的日期';
-          }
+        if (isNaN(date.getTime())) {
+          newErrors.birthDate = '請輸入有效的日期';
+        } else if (date.getFullYear() < 1900 || date > today) {
+          newErrors.birthDate = '日期必須在1900年到今天之間';
         }
       } catch (error) {
         newErrors.birthDate = '日期格式不正確';
@@ -202,18 +197,13 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
       // 獲取 LINE user ID
       const lineId = getLineUserId();
 
-      // 將8位數字出生日期轉換為正確的 Date 物件
+      // 將YYYY-MM-DD格式出生日期轉換為正確的 Date 物件
       const formatBirthDate = (birthDateString: string): Date => {
-        if (!birthDateString || birthDateString.length !== 8) {
-          throw new Error('出生日期格式不正確，請輸入8位數字');
+        if (!birthDateString || !/^\d{4}-\d{2}-\d{2}$/.test(birthDateString)) {
+          throw new Error('出生日期格式不正確，請輸入YYYY-MM-DD格式');
         }
         
-        const year = birthDateString.substring(0, 4);
-        const month = birthDateString.substring(4, 6);
-        const day = birthDateString.substring(6, 8);
-        
-        // 建立 Date 物件 (月份需要減1，因為 Date 的月份是從0開始)
-        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        const date = new Date(birthDateString);
         
         // 檢查日期是否有效
         if (isNaN(date.getTime())) {
@@ -227,7 +217,7 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
       // 將表單資料轉換為 API 格式（平面結構，不使用 consultationDetails）
       const consultationData = {
         lineId: lineId,
-        name: `諮詢者-${Date.now()}`, // 如果沒有姓名欄位，使用預設值
+        name: formData.name, // 使用表單中的 name 欄位
         birthDate: formatBirthDate(formData.birthDate), // 正確轉換為 Date 物件
         phone: formData.phone,
         email: formData.email,
@@ -237,7 +227,7 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
         referralSource: formData.howDidYouKnow, // 對應到 referralSource 欄位
         // 可選欄位
         notes: formData.notes || undefined,
-        preferredConsultant: formData.preferredConsultant || undefined,
+        consultant: formData.preferredConsultant || undefined,
       };
 
       console.log('準備提交的諮詢資料:', consultationData);
@@ -246,7 +236,7 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
         // 更新現有諮詢
         const updateData = {
           lineId: lineId,
-          name: `諮詢者-${Date.now()}`,
+          name: formData.name,
           birthDate: formatBirthDate(formData.birthDate),
           phone: formData.phone,
           email: formData.email,
@@ -255,7 +245,7 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
           contactTimeSlot: formData.availableTime,
           referralSource: formData.howDidYouKnow,
           notes: formData.notes || undefined,
-          preferredConsultant: formData.preferredConsultant || undefined,
+          consultant: formData.preferredConsultant || undefined,
         };
         await updateConsultation(editingRecord.id, updateData);
       } else {
@@ -278,6 +268,7 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
 
   const resetForm = () => {
     setFormData({
+      name: '',
       birthDate: '',
       phone: '',
       email: '',
@@ -367,36 +358,46 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
         </div>
 
         {/* API Error Display */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
-              <p className="text-red-800 text-sm">
-                <strong>提交失敗：</strong>{error}
-              </p>
-            </div>
-          </div>
-        )}
+
 
         {/* Form */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Name */}
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                <Users className="w-4 h-4 inline mr-2" />
+                請輸入姓名 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                placeholder="請輸入您的姓名"
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 ${
+                  errors.name ? 'border-red-300' : 'border-gray-200'
+                }`}
+                required
+              />
+              {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+            </div>
+
             {/* Birth Date */}
             <div>
               <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700 mb-2">
                 <Calendar className="w-4 h-4 inline mr-2" />
-                請輸入8碼西元生日，如19880808 <span className="text-red-500">*</span>
+                請輸入出生日期 <span className="text-red-500">*</span>
               </label>
               <input
-                type="text"
+                type="date"
                 id="birthDate"
                 value={formData.birthDate}
                 onChange={(e) => handleInputChange('birthDate', e.target.value)}
-                placeholder="19880808"
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 ${
                   errors.birthDate ? 'border-red-300' : 'border-gray-200'
                 }`}
-                maxLength={8}
+                required
               />
               {errors.birthDate && <p className="mt-1 text-sm text-red-600">{errors.birthDate}</p>}
             </div>
@@ -416,6 +417,7 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 ${
                   errors.phone ? 'border-red-300' : 'border-gray-200'
                 }`}
+                required
               />
               {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
             </div>
@@ -435,6 +437,7 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 ${
                   errors.email ? 'border-red-300' : 'border-gray-200'
                 }`}
+                required
               />
               {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
             </div>

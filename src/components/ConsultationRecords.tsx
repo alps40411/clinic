@@ -27,6 +27,7 @@ const ConsultationRecords: React.FC<ConsultationRecordsProps> = ({ onBackToForm,
       return {
         id: consultation.id,
         recordNumber: `CONS-${consultation.id}`,
+        name: consultation.name || '',
         birthDate: consultation.birthDate || '', 
         phone: consultation.phone || '', 
         email: consultation.email || '', 
@@ -34,7 +35,7 @@ const ConsultationRecords: React.FC<ConsultationRecordsProps> = ({ onBackToForm,
         consultationTopic: consultation.consultationType || '未指定',
         availableTime: consultation.contactTimeSlot || '', 
         howDidYouKnow: consultation.referralSource || '', 
-        preferredConsultant: consultation.preferredConsultant || '', 
+        preferredConsultant: consultation.consultant || '', 
         notes: consultation.notes || '',
         status: (consultation.status || 'pending') as 'pending' | 'contacted' | 'completed' | 'cancelled',
         createdAt: consultation.createdAt || new Date().toISOString(),
@@ -154,6 +155,11 @@ const ConsultationRecords: React.FC<ConsultationRecordsProps> = ({ onBackToForm,
             </div>
 
             <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-500">姓名</label>
+                <p className="text-gray-800">{selectedRecord.name}</p>
+              </div>
+              
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-500">出生日期</label>
@@ -243,16 +249,6 @@ const ConsultationRecords: React.FC<ConsultationRecordsProps> = ({ onBackToForm,
           <div className="w-16"></div>
         </div>
 
-        {/* 顯示錯誤或警告信息 */}
-        {(error || localError) && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-yellow-600" />
-              <p className="text-yellow-800 text-sm">{error || localError}</p>
-            </div>
-          </div>
-        )}
-
         {/* 載入狀態 */}
         {loading && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
@@ -293,6 +289,10 @@ const ConsultationRecords: React.FC<ConsultationRecordsProps> = ({ onBackToForm,
                     </div>
                     
                     <div className="space-y-2 mb-4">
+                      <div className="flex items-center gap-2 text-gray-600 text-sm">
+                        <Users className="w-4 h-4" />
+                        <span>{record.name}</span>
+                      </div>
                       <div className="flex items-center gap-2 text-gray-600 text-sm">
                         <MessageSquare className="w-4 h-4" />
                         <span>{getLabelByValue(consultationTopics, record.consultationTopic)}</span>

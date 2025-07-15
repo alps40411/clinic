@@ -1,6 +1,7 @@
 // 原有的本地諮詢表單介面（保留現有功能）
 export interface ConsultationForm {
   id?: string;
+  name: string;
   birthDate: string;
   phone: string;
   email: string;
@@ -51,7 +52,7 @@ export interface CreateConsultationDto {
   referralSource: string;
   // 可選欄位
   notes?: string;
-  preferredConsultant?: string;
+  consultant?: string;
 }
 
 // 更新諮詢的請求資料
@@ -66,7 +67,7 @@ export interface UpdateConsultationDto {
   contactTimeSlot?: string;
   referralSource?: string;
   notes?: string;
-  preferredConsultant?: string;
+  consultant?: string;
 }
 
 // 諮詢回應資料
@@ -82,7 +83,7 @@ export interface ConsultationResponseDto {
   contactTimeSlot: string;
   referralSource: string;
   notes?: string;
-  preferredConsultant?: string;
+  consultant?: string;
   status?: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   createdAt?: string;
   updatedAt?: string;

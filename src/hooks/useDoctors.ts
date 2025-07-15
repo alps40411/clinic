@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { DoctorInfo } from '../types/doctor';
 import { Doctor } from '../types/appointment';
+import { apiService } from '../services/apiService';
 import { convertApiToDoctorInfoArray, convertApiToDoctorArray } from '../utils/doctorUtils';
-import { apiService, ApiDoctor, ApiDoctorsResponse } from '../services/apiService';
 import { doctorsInfo } from '../data/doctorData';
-import { doctors as mockDoctors } from '../data/mockData';
+// 移除假資料導入
+// import { doctors as mockDoctors } from '../data/mockData';
 import { getLineUserId } from '../config/api';
 
 interface UseDoctorsReturn {
@@ -12,12 +13,11 @@ interface UseDoctorsReturn {
   doctors: Doctor[];
   loading: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
 }
 
 export const useDoctors = (lineUserId?: string): UseDoctorsReturn => {
-  const [doctorsInfoState, setDoctorsInfoState] = useState<DoctorInfo[]>(doctorsInfo);
-  const [doctorsState, setDoctorsState] = useState<Doctor[]>(mockDoctors);
+  const [doctorsInfoState, setDoctorsInfoState] = useState<DoctorInfo[]>([]);
+  const [doctorsState, setDoctorsState] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,36 +60,31 @@ export const useDoctors = (lineUserId?: string): UseDoctorsReturn => {
           const apiDoctorsInfo = convertApiToDoctorInfoArray(doctorsArray);
           const apiDoctors = convertApiToDoctorArray(doctorsArray);
           
-          // 如果轉換後有資料，使用 API 資料；否則使用本地資料
-          if (apiDoctorsInfo.length > 0) {
-            setDoctorsInfoState(apiDoctorsInfo);
-            setDoctorsState(apiDoctors);
-            console.log('成功轉換 API 醫師資料，共', apiDoctorsInfo.length, '位醫師');
-          } else {
-            console.warn('API 返回空的醫師陣列，使用本地資料');
-            setError('API 返回的醫師資料為空');
-            setDoctorsInfoState(doctorsInfo);
-            setDoctorsState(mockDoctors);
-          }
+          // 只使用API資料，不回退到假資料
+          setDoctorsInfoState(apiDoctorsInfo);
+          setDoctorsState(apiDoctors);
+          console.log('成功轉換 API 醫師資料，共', apiDoctorsInfo.length, '位醫師');
+          
         } catch (conversionError) {
           console.error('資料轉換錯誤:', conversionError);
           setError(`資料轉換失敗: ${conversionError instanceof Error ? conversionError.message : '未知錯誤'}`);
-          setDoctorsInfoState(doctorsInfo);
-          setDoctorsState(mockDoctors);
+          // 不使用假資料，保持空陣列
+          setDoctorsInfoState([]);
+          setDoctorsState([]);
         }
       } else {
-        // API 失敗時使用本地資料
-        console.warn('API 獲取醫生資料失敗，使用本地資料:', response.message);
+        // API 失敗時不使用假資料
+        console.warn('API 獲取醫生資料失敗:', response.message);
         setError(response.message || 'API 呼叫失敗');
-        setDoctorsInfoState(doctorsInfo);
-        setDoctorsState(mockDoctors);
+        setDoctorsInfoState([]);
+        setDoctorsState([]);
       }
     } catch (err) {
       console.error('獲取醫生資料時發生錯誤:', err);
       setError(err instanceof Error ? err.message : '未知錯誤');
-      // 網路錯誤時使用本地資料
-      setDoctorsInfoState(doctorsInfo);
-      setDoctorsState(mockDoctors);
+      // 不使用假資料，保持空陣列
+      setDoctorsInfoState([]);
+      setDoctorsState([]);
     } finally {
       setLoading(false);
     }
@@ -103,7 +98,6 @@ export const useDoctors = (lineUserId?: string): UseDoctorsReturn => {
     doctorsInfo: doctorsInfoState,
     doctors: doctorsState,
     loading,
-    error,
-    refetch: fetchDoctors,
+    error
   };
 }; 

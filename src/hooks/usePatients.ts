@@ -6,7 +6,8 @@ import {
   convertPatientFormToApiCreate,
   convertApiToPatientProfileArray 
 } from '../utils/patientUtils';
-import { mockPatientProfiles } from '../data/patientData';
+// 移除假資料導入，因為沒有使用
+// import { mockPatientProfiles } from '../data/patientData';
 import { getLineUserId } from '../config/api';
 
 interface UsePatientsReturn {

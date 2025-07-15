@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FileText, Calendar, Phone, Mail, MapPin, MessageSquare, Clock, Users, Trash2, Edit3, ArrowLeft, Eye, AlertCircle } from 'lucide-react';
 import { ConsultationRecord, ConsultationResponseDto } from '../types/consultation';
-import { mockConsultationRecords, clinicLocations, consultationTopics, availableTimes, howDidYouKnowOptions, consultants } from '../data/consultationData';
+// 移除假資料導入
+// import { mockConsultationRecords, clinicLocations, consultationTopics, availableTimes, howDidYouKnowOptions, consultants } from '../data/consultationData';
+import { clinicLocations, consultationTopics, availableTimes, howDidYouKnowOptions, consultants } from '../data/consultationData';
 import { useConsultations } from '../hooks/useConsultations';
 
 interface ConsultationRecordsProps {
@@ -16,33 +18,30 @@ const ConsultationRecords: React.FC<ConsultationRecordsProps> = ({ onBackToForm,
   const [localError, setLocalError] = useState('');
   const [selectedRecord, setSelectedRecord] = useState<ConsultationRecord | null>(null);
 
-  // 計算要顯示的記錄：優先 API 資料，否則顯示模擬資料
+  // 計算要顯示的記錄：只顯示真實API資料
   const displayRecords = React.useMemo(() => {
-    if (consultations.length > 0) {
-      return consultations.map((consultation) => {
-        console.log('處理諮詢資料:', consultation);
-        
-        // 現在 consultation 是平面結構
-        return {
-          id: consultation.id,
-          recordNumber: `CONS-${consultation.id}`,
-          birthDate: consultation.birthDate || '', 
-          phone: consultation.phone || '', 
-          email: consultation.email || '', 
-          clinicLocation: consultation.location || 'API諮詢',
-          consultationTopic: consultation.consultationType || '未指定',
-          availableTime: consultation.contactTimeSlot || '', 
-          howDidYouKnow: consultation.referralSource || '', 
-          preferredConsultant: consultation.preferredConsultant || '', 
-          notes: consultation.notes || '',
-          status: (consultation.status || 'pending') as 'pending' | 'contacted' | 'completed' | 'cancelled',
-          createdAt: consultation.createdAt || new Date().toISOString(),
-          updatedAt: consultation.updatedAt || new Date().toISOString()
-        } as ConsultationRecord;
-      });
-    }
-    return records;
-  }, [consultations, records]);
+    return consultations.map((consultation) => {
+      console.log('處理諮詢資料:', consultation);
+      
+      // 現在 consultation 是平面結構
+      return {
+        id: consultation.id,
+        recordNumber: `CONS-${consultation.id}`,
+        birthDate: consultation.birthDate || '', 
+        phone: consultation.phone || '', 
+        email: consultation.email || '', 
+        clinicLocation: consultation.location || 'API諮詢',
+        consultationTopic: consultation.consultationType || '未指定',
+        availableTime: consultation.contactTimeSlot || '', 
+        howDidYouKnow: consultation.referralSource || '', 
+        preferredConsultant: consultation.preferredConsultant || '', 
+        notes: consultation.notes || '',
+        status: (consultation.status || 'pending') as 'pending' | 'contacted' | 'completed' | 'cancelled',
+        createdAt: consultation.createdAt || new Date().toISOString(),
+        updatedAt: consultation.updatedAt || new Date().toISOString()
+      } as ConsultationRecord;
+    });
+  }, [consultations]);
 
   // 自動載入當前用戶的諮詢記錄
   const loadConsultations = useCallback(async () => {
@@ -58,18 +57,16 @@ const ConsultationRecords: React.FC<ConsultationRecordsProps> = ({ onBackToForm,
       if (result && result.data && result.data.length > 0) {
         console.log('成功載入', result.data.length, '筆諮詢記錄');
       } else {
-        console.log('API 返回空數據，顯示模擬資料');
-        setRecords(mockConsultationRecords.slice(0, 3));
-        setLocalError('目前沒有諮詢記錄，顯示範例資料');
+        console.log('API 返回空數據');
+        setLocalError('目前沒有諮詢記錄');
       }
       
       setHasLoaded(true);
     } catch (err) {
       console.error('載入諮詢記錄失敗:', err);
-      // API 失敗時，顯示模擬數據以免頁面空白
-      setRecords(mockConsultationRecords.slice(0, 3));
+      // API 失敗時不使用假資料
       setHasLoaded(true);
-      setLocalError('無法連接到伺服器，顯示範例資料');
+      setLocalError('無法連接到伺服器，請稍後再試');
     }
   }, [getConsultationsByLine, clearError]);
 

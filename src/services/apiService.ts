@@ -207,7 +207,7 @@ class ApiService {
 
   async getPatients(lineUserId?: string): Promise<ApiResponse<ApiPatientsResponse>> {
     const activeLineUserId = lineUserId || getLineUserId();
-    return this.request<ApiPatientsResponse>(API_CONFIG.ENDPOINTS.PATIENTS, activeLineUserId);
+    return this.request<ApiPatientsResponse>(API_CONFIG.ENDPOINTS.PATIENTS_BY_LINE, activeLineUserId);
   }
 
   async getSchedules(params: ScheduleParams = {}, lineUserId?: string): Promise<ApiResponse<ApiSchedulesResponse>> {

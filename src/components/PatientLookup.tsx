@@ -81,6 +81,8 @@ const PatientLookup: React.FC<PatientLookupProps> = ({
     setIsLoading(true);
     
     try {
+      // 警告：此API需要後端確保根據LINE ID過濾結果
+      // 目前雖然有傳送LINE ID header，但需要確認後端是否正確過濾
       const response = await apiService.searchAppointmentsByIdNumber({
         idNumber,
         startDate: `${startDate}T00:00:00Z`,

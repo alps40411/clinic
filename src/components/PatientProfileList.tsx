@@ -191,12 +191,6 @@ const PatientProfileList: React.FC<PatientProfileListProps> = ({
             <p className="mt-2 text-gray-600">載入中...</p>
           </div>
         )}
-        
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-            <p className="text-red-700">{error}</p>
-          </div>
-        )}
 
         {/* Patient List */}
         <div className="space-y-4">
